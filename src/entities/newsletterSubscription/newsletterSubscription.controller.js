@@ -18,7 +18,6 @@ export const createNewsletterSubscription = async (req, res, next) => {
         }
     }
 }
-
 export const getAllNewsletterSubscription = async (req, res, next) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;

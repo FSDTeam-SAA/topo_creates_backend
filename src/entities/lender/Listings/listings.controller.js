@@ -3,7 +3,16 @@ import { generateResponse } from '../../../lib/responseFormate.js';
 
 export const listDress = async (req, res) => {
   try {
-    const dress = await listingService.createDress(req.body);
+    const lenderId = req.user._id;
+    const dataWithLender = {
+      ...req.body,
+      lenderId,
+
+    };
+
+    const dress = await listingService.createDress(dataWithLender, req.files?.media || []);
+
+
     generateResponse(res, 201, true, "Dress listed successfully", dress);
   } catch (error) {
     generateResponse(res, 400, false, "Failed to list dress", error.message);
@@ -49,7 +58,7 @@ export const getDressesByLender = async (req, res) => {
 
 export const updateDress = async (req, res) => {
   try {
-    const updated = await listingService.updateDress(req.params.id, req.body);
+    const updated = await listingService.updateDress(req.params.id, req.body, req.files);
     if (!updated) return generateResponse(res, 404, false, "Dress not found");
     generateResponse(res, 200, true, "Dress updated successfully", updated);
   } catch (error) {

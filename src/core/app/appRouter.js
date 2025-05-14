@@ -14,6 +14,8 @@ import messageRoutes from '../../entities/message/message.routes.js';
 // import adminBookingRoutes from '../../entities/admin/bookings/bookings.routes.js';
 // import webhookRoutes from '../../entities/webhooks/webhooks.routes.js';
 
+import adminListingRoutes from '../../entities/admin/Lisitngs/ReviewandMain Site Listing/adminListing.routes.js'
+
 const router = express.Router();
 
 // Define all your routes here
@@ -25,6 +27,7 @@ router.use('/v1/newsletterSubscription', newsletterSubscriptionRoutes)
 router.use('/v1/reviews', reviewsRoutes)
 router.use('/v1/application', applicationRoutes)
 router.use('/v1/lender', lenderRoutes)
+
 router.use('/v1/message', messageRoutes)
 
 
@@ -33,6 +36,10 @@ router.use('/v1/customer/bookings', customerBookingRoutes);
 // app.use('/api/lender/bookings', lenderBookingRoutes);
 // app.use('/api/admin/bookings', adminBookingRoutes);
 // app.use('/api/webhooks', webhookRoutes);
+
+router.use('/v1/admin',adminListingRoutes)
+
+
 
 
 export default router;

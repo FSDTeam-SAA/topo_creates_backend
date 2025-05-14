@@ -1,5 +1,5 @@
 import { generateResponse } from '../../lib/responseFormate.js';
-import User from '../auth/auth.model.js';
+
 import * as ApplicationService from './application.service.js';
 
 export const newApplication = async (req, res) => {
@@ -36,18 +36,7 @@ export const getApplicationById = async (req, res) => {
         }
     }
 }
-export const updateApplication = async (req, res) => {
-    try {
-        const application = await ApplicationService.updateApplication(req.params.id, req.body);
-        generateResponse(res, 200, true, 'Application updated successfully', application);
-    } catch (error) {
-        if (error.message === 'Application not found') {
-            generateResponse(res, 404, false, 'Application not found', null);
-        } else {
-            generateResponse(res, 500, false, 'Internal server error', null);
-        }
-    }
-}
+
 export const deleteApplication = async (req, res) => {
     try {
         const application = await ApplicationService.deleteApplication(req.params.id);
@@ -63,15 +52,33 @@ export const deleteApplication = async (req, res) => {
 
 
 
-export const approveApplication = async (req, res) => {
+export const updateApplication = async (req, res) => {
     try {
-        const applicationId = req.params.id;
+        const { id } = req.params;
+        const updateData = req.body;
 
-        // Step 1: Call the service to create the user and send the email
-        const user = await ApplicationService.createUserFromApplication(applicationId);
+        const application = await ApplicationService.updateApplication(id, updateData);
 
-        generateResponse(res, 201, true, 'User profile created and email sent successfully', user);
+        const justApproved =
+            updateData.status === 'approved' && application.status === 'approved';
+
+        let user = null;
+
+        if (justApproved) {
+            // Create user + send email
+            user = await ApplicationService.updateApplication(id, updateData);
+        }
+
+        generateResponse(res, 200, true, 'Application updated successfully', {
+            application,
+            user: user || undefined,
+        });
     } catch (error) {
-        generateResponse(res, 500, false, 'Internal server error', null);
+        console.error('Error updating application:', error);
+        if (error.message === 'Application not found') {
+            generateResponse(res, 404, false, 'Application not found', null);
+        } else {
+            generateResponse(res, 500, false, 'Internal server error', null);
+        }
     }
 };

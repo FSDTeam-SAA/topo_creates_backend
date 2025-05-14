@@ -24,10 +24,63 @@ export const getApplicationById = async (id) => {
     return application;
 }
 export const updateApplication = async (id, data) => {
-    const application = await Application.findByIdAndUpdate(id, data, { new: true });
-    if (!application) throw new Error('Application not found');
-    return application;
-}
+  try {
+    const prevApp = await Application.findById(id);
+    if (!prevApp) throw new Error('Application not found');
+
+    const wasPending = prevApp.status === 'pending';
+    const isNowApproved = data.status === 'approved';
+
+    const updatedApplication = await Application.findByIdAndUpdate(id, data, { new: true });
+
+    if (wasPending && isNowApproved) {
+      try {
+        const existingUser = await User.findOne({ email: updatedApplication.businessEmail });
+
+        if (!existingUser) {
+          const password = generateRandomPassword();
+
+          const user = new User({
+            email: updatedApplication.businessEmail,
+            username: updatedApplication.businessEmail,
+            password,
+            role: 'LENDER',
+            fullName: updatedApplication.fullName,
+            businessName: updatedApplication.businessName,
+            businessAddress: updatedApplication.businessAddress,
+            phoneNumber: updatedApplication.phoneNumber,
+          });
+
+          await user.save();
+
+          const emailContent = lenderCredentialsTemplate(
+            updatedApplication.fullName,
+            updatedApplication.businessEmail,
+            password
+          );
+
+          await sendEmail({
+            to: updatedApplication.businessEmail,
+            subject: 'Your Lender Account Details',
+            html: emailContent,
+          });
+
+          console.log(`✅ Email sent to ${updatedApplication.businessEmail}`);
+        } else {
+          console.log(`ℹ️ User already exists for ${updatedApplication.businessEmail}`);
+        }
+      } catch (userOrEmailErr) {
+        console.error('❌ Error while creating user or sending email:', userOrEmailErr);
+      }
+    }
+
+    return updatedApplication;
+  } catch (err) {
+    console.error('❌ Error in updateApplication:', err);
+    throw err; // rethrow for controller to catch
+  }
+};
+
 export const deleteApplication = async (id) => {
     const application = await Application.findByIdAndDelete(id);
     if (!application) throw new Error('Application not found');
@@ -36,43 +89,3 @@ export const deleteApplication = async (id) => {
 
 
 
-
-export const createUserFromApplication = async (applicationId) => {
-  try {
-    // Step 1: Find the approved application
-    const application = await Application.findById(applicationId);
-    if (!application || application.status !== 'approved') {
-      throw new Error('Application is not approved or does not exist');
-    }
-
-    // Step 2: Generate a random password
-    const password = generateRandomPassword(); 
-
-    // Step 3: Create the user with the application information
-    const user = new User({
-      email: application.businessEmail,
-      username: application.businessEmail, 
-      password, 
-      role: 'LENDER', 
-      fullName: application.fullName,
-      businessName: application.businessName,
-      businessAddress: application.businessAddress,
-      phoneNumber: application.phoneNumber,
-    });
-
-    await user.save();
-
-    // Step 4: Send the password email
-    const emailContent = lenderCredentialsTemplate(application.fullName, application.businessEmail, password);
-    await sendEmail({
-      to: application.businessEmail,
-      subject: 'Your Account Details - [Your Service Name]',
-      html: emailContent,
-    });
-
-    return user;
-  } catch (error) {
-    console.error('Error creating user from application:', error);
-    throw new Error('Failed to create user or send email');
-  }
-};
