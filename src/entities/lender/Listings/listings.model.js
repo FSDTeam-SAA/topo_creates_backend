@@ -126,4 +126,6 @@ const ListingSchema = new Schema(
   }
 );
 
-export default mongoose.model('Listings', ListingSchema);
+
+const Listing =  mongoose.model('Listings', ListingSchema);
+export default Listing
