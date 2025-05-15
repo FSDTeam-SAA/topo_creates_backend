@@ -17,7 +17,7 @@ const UserSchema = new mongoose.Schema(
     firstName: { type: String },
     lastName: { type: String },
     phoneNumber: { type: String, default: '' },
-    email: { type: String, required: true, unique: true},
+    email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     username: { type: String, default: '' },
     dob: { type: Date, default: null },
@@ -71,6 +71,30 @@ const UserSchema = new mongoose.Schema(
 
     hasActiveSubscription: { type: Boolean, default: false },
     subscriptionExpireDate: { type: Date, default: null },
+    // Lender-specific fields
+    businessName: { type: String, trim: true },
+    abnNumber: { type: String, trim: true },
+    businessAddress: { type: String, trim: true },
+    instagramHandle: { type: String, trim: true },
+    businessWebsite: { type: String, trim: true },
+    numberOfDresses: {
+      type: Number,
+      default: 0,
+      min: [0, 'Number of dresses cannot be negative'],
+    },
+    allowTryOn: { type: Boolean, default: false },
+    allowLocalPickup: { type: Boolean, default: false },
+    shipAustraliaWide: { type: Boolean, default: false },
+    reviewStockMethod: {
+      type: String,
+      enum: ['Website', 'Instagram', 'Photo', 'In-person', 'Video Call'],
+    },
+    agreedTerms: { type: Boolean, default: false },
+    agreedCurationPolicy: { type: Boolean, default: false },
+
+    // Optional: Keep notes or reasonForRejection if admin needs to reference later
+    notes: { type: String, trim: true },
+    reasonForRejection: { type: String, trim: true },
   },
   { timestamps: true }
 );
