@@ -103,11 +103,7 @@ const ListingSchema = new Schema(
       type: [String], // can be multiple (e.g., ["Wedding", "Prom"])
       default: [],
     },
-    status: {
-      type: String,
-      enum: ['pending', 'approved', 'rejected', 'inactive'],
-      default: 'pending',
-    },
+    
     insurance: {
       type: Boolean,
       default: false,
