@@ -1,27 +1,27 @@
 import Application from './application.model.js';
-import { generateRandomPassword } from '../../lib/generatePassword.js'; 
+import { generateRandomPassword } from '../../lib/generatePassword.js';
 import lenderCredentialsTemplate from '../../lib/lenderCredentialsTemplate.js';
-import sendEmail from '../../lib/sendEmail.js'; 
+import sendEmail from '../../lib/sendEmail.js';
 import User from '../auth/auth.model.js'
 
 export const createApplication = async (data) => {
-    const exists = await Application.findOne({ businessEmail: data.businessEmail });
-    if (exists) throw new Error('An application with this email already exists');
+  const exists = await Application.findOne({ businessEmail: data.businessEmail });
+  if (exists) throw new Error('An application with this email already exists');
 
-    const application = new Application(data);
-    return await application.save();
+  const application = new Application(data);
+  return await application.save();
 };
 
 
 export const getAllApplications = async () => {
-    const applications = await Application.find().sort({ createdAt: -1 });
-    if (!applications) throw new Error('No applications found');
-    return applications;
+  const applications = await Application.find().sort({ createdAt: -1 });
+  if (!applications) throw new Error('No applications found');
+  return applications;
 }
 export const getApplicationById = async (id) => {
-    const application = await Application.findById(id);
-    if (!application) throw new Error('Application not found');
-    return application;
+  const application = await Application.findById(id);
+  if (!application) throw new Error('Application not found');
+  return application;
 }
 export const updateApplication = async (id, data) => {
   try {
@@ -46,9 +46,23 @@ export const updateApplication = async (id, data) => {
             password,
             role: 'LENDER',
             fullName: updatedApplication.fullName,
+            phoneNumber: updatedApplication.phoneNumber,
+
             businessName: updatedApplication.businessName,
             businessAddress: updatedApplication.businessAddress,
-            phoneNumber: updatedApplication.phoneNumber,
+            abnNumber: updatedApplication.abnNumber,
+            instagramHandle: updatedApplication.instagramHandle,
+            businessWebsite: updatedApplication.businessWebsite,
+            numberOfDresses: updatedApplication.numberOfDresses,
+            allowTryOn: updatedApplication.allowTryOn,
+            allowLocalPickup: updatedApplication.allowLocalPickup,
+            shipAustraliaWide: updatedApplication.shipAustraliaWide,
+            reviewStockMethod: updatedApplication.reviewStockMethod,
+            agreedTerms: updatedApplication.agreedTerms,
+            agreedCurationPolicy: updatedApplication.agreedCurationPolicy,
+
+
+
           });
 
           await user.save();
@@ -82,9 +96,9 @@ export const updateApplication = async (id, data) => {
 };
 
 export const deleteApplication = async (id) => {
-    const application = await Application.findByIdAndDelete(id);
-    if (!application) throw new Error('Application not found');
-    return application;
+  const application = await Application.findByIdAndDelete(id);
+  if (!application) throw new Error('Application not found');
+  return application;
 }
 
 
