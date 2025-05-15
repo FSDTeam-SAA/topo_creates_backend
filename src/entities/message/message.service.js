@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { Booking } from "../booking/booking.model.js";
 import Message from "./message.model.js";
+import { io } from "../../app.js";
 
 
 export const sendMessageService = async (booking,message) => {
@@ -10,6 +11,9 @@ export const sendMessageService = async (booking,message) => {
     if (!bookingDoc) {
         throw new Error("Booking not found");
     }
+
+    //console.log("Booking Document:", bookingDoc);
+
     if(bookingDoc.customer.toString() !== message.sender.toString() && bookingDoc.lender.toString() !== message.sender.toString()){
         throw new Error("You are not authorized to send a message for this booking");
     }
@@ -29,6 +33,14 @@ export const sendMessageService = async (booking,message) => {
             { $push: { messages: message } },
             { new: true, upsert: true }
         );
+
+        // socket.io emit
+        io.to(`room-${booking}`).emit("message", {
+            message: message,
+            sender: message.sender,
+            bookingId: booking,
+            createdAt: new Date(),
+        });
         
         return updateMessage;
     }
