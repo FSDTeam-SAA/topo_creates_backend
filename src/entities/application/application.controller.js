@@ -3,18 +3,23 @@ import { generateResponse } from '../../lib/responseFormate.js';
 import * as ApplicationService from './application.service.js';
 
 export const newApplication = async (req, res) => {
-    try {
-        const application = await ApplicationService.createApplication(req.body);
-        generateResponse(res, 201, true, 'Application created successfully', application);
+  try {
+    const application = await ApplicationService.createApplication(req.body);
+    generateResponse(res, 201, true, 'Application created successfully', application);
 
-    } catch (error) {
-        if (error.message === 'An application with this email already exists') {
-            generateResponse(res, 400, false, 'An application with this email already exists', null);
-        } else {
-            generateResponse(res, 500, false, 'Internal server error', null);
-        }
+  } catch (error) {
+    if (error.message === 'An application with this email already exists') {
+      return generateResponse(res, 400, false, error.message, null);
     }
-}
+
+    if (error.message === 'Business email is required') {
+      return generateResponse(res, 400, false, error.message, null);
+    }
+
+    generateResponse(res, 500, false, 'Internal server error', null);
+  }
+};
+
 
 export const getAllApplications = async (req, res) => {
     try {

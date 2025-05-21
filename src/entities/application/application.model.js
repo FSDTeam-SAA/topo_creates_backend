@@ -68,8 +68,9 @@ const LenderApplicationSchema = new Schema(
       default: false,
     },
     reviewStockMethod: {
-      type: String,
-      enum: ['Website', 'Instagram', 'Photo', 'In-person', 'Video Call'],
+      website: { type: Boolean, default: false },
+      instagram: { type: Boolean, default: false },
+      keyBrands: { type: Boolean, default: false },
     },
     agreedTerms: {
       type: Boolean,
@@ -92,7 +93,6 @@ const LenderApplicationSchema = new Schema(
       type: String,
       trim: true,
     },
-
   },
   {
     timestamps: true,

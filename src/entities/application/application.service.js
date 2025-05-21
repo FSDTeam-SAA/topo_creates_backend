@@ -5,12 +5,23 @@ import sendEmail from '../../lib/sendEmail.js';
 import User from '../auth/auth.model.js'
 
 export const createApplication = async (data) => {
-  const exists = await Application.findOne({ businessEmail: data.businessEmail });
+  if (!data.businessEmail) {
+    throw new Error('Business email is required');
+  }
+
+  const normalizedEmail = data.businessEmail.trim().toLowerCase();
+  const exists = await Application.findOne({ businessEmail: normalizedEmail });
+
   if (exists) throw new Error('An application with this email already exists');
 
-  const application = new Application(data);
+  const application = new Application({
+    ...data,
+    businessEmail: normalizedEmail, // Ensure consistency in saved data
+  });
+
   return await application.save();
 };
+
 
 
 export const getAllApplications = async () => {
