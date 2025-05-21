@@ -52,7 +52,7 @@ const LenderApplicationSchema = new Schema(
     },
     numberOfDresses: {
       type: String,
-      enum: ['1-5', '5-10', '15-30', '30', '50', '50+'],
+      enum: ['1-5', '5-15', '15-30', '30+'],
     },
   
     allowTryOn: {
