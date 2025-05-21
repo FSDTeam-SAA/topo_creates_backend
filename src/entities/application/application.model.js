@@ -51,10 +51,10 @@ const LenderApplicationSchema = new Schema(
       match: [/\S+@\S+\.\S+/, 'Please provide a valid email address'],
     },
     numberOfDresses: {
-      type: Number,
-      default: 0,
-      min: [0, 'Number of dresses cannot be negative'],
+      type: String,
+      enum: ['1-5', '5-10', '15-30', '30', '50', '50+'],
     },
+  
     allowTryOn: {
       type: Boolean,
       default: false,
