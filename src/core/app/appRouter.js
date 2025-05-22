@@ -5,8 +5,8 @@ import userRoutes from '../../entities/user/user.routes.js';
 import contactRoutes from '../../entities/contact/contact.routes.js';
 import newsletterSubscriptionRoutes from '../../entities/newsletterSubscription/newsletterSubscription.routes.js'
 import reviewsRoutes from '../../entities/review/review.routes.js'
-import applicationRoutes from '../../entities/application/application.routes.js'
-import lenderRoutes from '../../entities/lender/Listings/lisitngs.routes.js'
+import applicationRoutes from '../../entities/sellerApplication/application.routes.js'
+import lenderRoutes from '../../entities/lender/Listings/listings.routes.js'
 import customerBookingRoutes from '../../entities/customer/bookings/bookings.routes.js';
 import messageRoutes from '../../entities/message/message.routes.js';
 // import customerBookingRoutes from '../../entities/customer/bookings/bookings.routes.js';
@@ -14,7 +14,7 @@ import messageRoutes from '../../entities/message/message.routes.js';
 // import adminBookingRoutes from '../../entities/admin/bookings/bookings.routes.js';
 // import webhookRoutes from '../../entities/webhooks/webhooks.routes.js';
 
-import adminListingRoutes from '../../entities/admin/Lisitngs/ReviewandMain Site Listing/adminListing.routes.js'
+import adminListingRoutes from '../../entities/admin/Listings/ReviewedMainSiteListing/adminListing.routes.js'
 
 const router = express.Router();
 
