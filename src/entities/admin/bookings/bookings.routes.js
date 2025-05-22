@@ -1,63 +1,41 @@
-// import express from "express";
-// // import {
-// //   getAllBookingsAdmin,
-// //   getBookingByIdAdmin,
-// //   updateBookingAdmin,
-// //   cancelBookingAdmin,
-// //   refundBookingAdmin,
-// //   createManualBookingByAdmin,
-// //   // You might also have admin-specific dispute actions here or in a separate dispute module
-// // } from "./booking.controller.js"; // Assumes controller is in the same folder
-// // import {
-// //   verifyToken,
-// //   adminMiddleware,
-// // } from "../../../../core/middlewares/authMiddleware.js"; // Adjust path
+import express from "express";
+import {
+  getAllBookings,
+  getBookingById,
+  updateBooking,
+  updateBookingStatus,
+  cancelBooking,
+  processRefund,
+  updateAdminNotes,
+} from "../controllers/adminBooking.controller.js";
 
-// const router = express.Router();
+import { verifyToken } from "../middlewares/auth.middleware.js";
+import { adminMiddleware } from "../middlewares/role.middleware.js";
 
-// // All routes in this file are protected and require admin role
-// router.use(verifyToken, adminMiddleware);
+const router = express.Router();
 
-// /**
-//  * @route   GET /api/admin/bookings
-//  * @desc    Admin gets a list of all bookings on the platform
-//  * @access  Private (Admin)
-//  */
-// router.get("/", getAllBookingsAdmin);
+// Apply base authentication and admin role check
+router.use(verifyToken, adminMiddleware);
 
-// /**
-//  * @route   GET /api/admin/bookings/:bookingId
-//  * @desc    Admin gets a specific booking by ID
-//  * @access  Private (Admin)
-//  */
-// router.get("/:bookingId", getBookingByIdAdmin);
+// GET /api/v1/admin/bookings
+router.get("/", getAllBookings);
 
-// /**
-//  * @route   PUT /api/admin/bookings/:bookingId
-//  * @desc    Admin updates any detail of a specific booking
-//  * @access  Private (Admin)
-//  */
-// router.put("/:bookingId", updateBookingAdmin);
+// GET /api/v1/admin/bookings/:bookingId
+router.get("/:bookingId", getBookingById);
 
-// /**
-//  * @route   POST /api/admin/bookings/:bookingId/cancel
-//  * @desc    Admin cancels a booking
-//  * @access  Private (Admin)
-//  */
-// router.post("/:bookingId/cancel", cancelBookingAdmin);
+// PATCH /api/v1/admin/bookings/:bookingId
+router.patch("/:bookingId", updateBooking); // caution use only for super admin or internal tools
 
-// /**
-//  * @route   POST /api/admin/bookings/:bookingId/refund
-//  * @desc    Admin processes a refund for a booking
-//  * @access  Private (Admin)
-//  */
-// router.post("/:bookingId/refund", refundBookingAdmin);
+// PATCH /api/v1/admin/bookings/:bookingId/status
+router.patch("/:bookingId/status", updateBookingStatus);
 
-// /**
-//  * @route   POST /api/admin/bookings/manual
-//  * @desc    Admin creates a booking manually
-//  * @access  Private (Admin)
-//  */
-// router.post("/manual", createManualBookingByAdmin);
+// PATCH /api/v1/admin/bookings/:bookingId/cancel
+router.patch("/:bookingId/cancel", cancelBooking);
 
-// export default router;
+// POST /api/v1/admin/bookings/:bookingId/refund
+router.post("/:bookingId/refund", processRefund);
+
+// PATCH /api/v1/admin/bookings/:bookingId/update-notes
+router.patch("/:bookingId/update-notes", updateAdminNotes);
+
+export default router;

@@ -13,6 +13,7 @@ import messageRoutes from '../../entities/message/message.routes.js';
 // import lenderBookingRoutes from '../../entities/lender/bookings/bookings.routes.js';
 // import adminBookingRoutes from '../../entities/admin/bookings/bookings.routes.js';
 // import webhookRoutes from '../../entities/webhooks/webhooks.routes.js';
+import customerDispute from '../../entities/dispute/customer/dispute.routes.js';
 
 import adminListingRoutes from '../../entities/admin/Lisitngs/ReviewandMain Site Listing/adminListing.routes.js'
 
@@ -38,6 +39,10 @@ router.use('/v1/customer/bookings', customerBookingRoutes);
 // app.use('/api/webhooks', webhookRoutes);
 
 router.use('/v1/admin',adminListingRoutes)
+
+
+// dispute routes
+router.use('/v1/disputes/customer', customerDispute);
 
 
 

@@ -1,78 +1,62 @@
-// import express from "express";
-// // import {
-// //   getLenderBookings,
-// //   getLenderBookingById,
-// //   updateLenderBookingStatus,
-// //   confirmLenderPickup,
-// //   recordLenderTryOnOutcome,
-// //   generateLenderShippingLabel,
-// //   createManualBookingByLender,
-// //   openDisputeByLender, // Renamed for clarity
-// // } from "./booking.controller.js"; // Assumes controller is in the same folder
-// // import {
-// //   verifyToken,
-// //   lenderMiddleware,
-// // } from "../../../../core/middlewares/authMiddleware.js"; // Adjust path
+import express from "express";
+import {
+  getAllLenderBookings,
+  getLenderBookingById,
+  createManualBooking,
+  confirmBooking,
+  fulfillOrder,
+  generateShippingLabel,
+  markAsShipped,
+  markAsPickedUp,
+  recordTryOnOutcome,
+  markAsReceived,
+  cancelBooking,
+  raiseDispute,
+} from "../controllers/lenderBooking.controller.js";
 
-// const router = express.Router();
+import { verifyToken } from "../middlewares/auth.middleware.js";
+import { lenderMiddleware } from "../middlewares/role.middleware.js";
+import { canAccessBooking } from "../middlewares/bookingAccess.middleware.js";
 
-// // All routes in this file are protected and require lender role
-// router.use(verifyToken, lenderMiddleware);
+const router = express.Router();
 
-// /**
-//  * @route   GET /api/lender/bookings
-//  * @desc    Get all bookings related to the logged-in lender's listings
-//  * @access  Private (Lender)
-//  */
-// router.get("/", getLenderBookings);
+// Apply base authentication and role-based access for all routes
+router.use(verifyToken, lenderMiddleware);
 
-// /**
-//  * @route   GET /api/lender/bookings/:bookingId
-//  * @desc    Get a specific booking by ID related to the lender's listings
-//  * @access  Private (Lender)
-//  */
-// router.get("/:bookingId", getLenderBookingById);
+// GET /api/v1/lender/bookings
+router.get("/", getAllLenderBookings);
 
-// /**
-//  * @route   PUT /api/lender/bookings/:bookingId/status
-//  * @desc    Lender updates the status of a booking (e.g., shipped, received return)
-//  * @access  Private (Lender)
-//  */
-// router.put("/:bookingId/status", updateLenderBookingStatus);
+// GET /api/v1/lender/bookings/:bookingId
+router.get("/:bookingId", canAccessBooking, getLenderBookingById);
 
-// /**
-//  * @route   POST /api/lender/bookings/:bookingId/confirm-pickup
-//  * @desc    Lender confirms customer has picked up the item for local pickup
-//  * @access  Private (Lender)
-//  */
-// router.post("/:bookingId/confirm-pickup", confirmLenderPickup);
+// POST /api/v1/lender/bookings/manual
+router.post("/manual", createManualBooking);
 
-// /**
-//  * @route   POST /api/lender/bookings/:bookingId/record-try-on
-//  * @desc    Lender records the outcome of a try-on session
-//  * @access  Private (Lender)
-//  */
-// router.post("/:bookingId/record-try-on", recordLenderTryOnOutcome);
+// PATCH /api/v1/lender/bookings/:bookingId/confirm
+router.patch("/:bookingId/confirm", canAccessBooking, confirmBooking);
 
-// /**
-//  * @route   POST /api/lender/bookings/:bookingId/generate-shipping-label
-//  * @desc    Lender generates a shipping label for an order
-//  * @access  Private (Lender)
-//  */
-// router.post("/:bookingId/generate-shipping-label", generateLenderShippingLabel);
+// PATCH /api/v1/lender/bookings/:bookingId/fulfill-order
+router.patch("/:bookingId/fulfill-order", canAccessBooking, fulfillOrder);
 
-// /**
-//  * @route   POST /api/lender/bookings/manual
-//  * @desc    Lender creates a booking manually
-//  * @access  Private (Lender)
-//  */
-// router.post("/manual", createManualBookingByLender);
+// POST /api/v1/lender/bookings/:bookingId/generate-shipping-label
+router.post("/:bookingId/generate-shipping-label", canAccessBooking, generateShippingLabel);
 
-// /**
-//  * @route   POST /api/lender/bookings/:bookingId/dispute
-//  * @desc    Lender opens a dispute for a specific booking
-//  * @access  Private (Lender)
-//  */
-// router.post("/:bookingId/dispute", openDisputeByLender);
+// PATCH /api/v1/lender/bookings/:bookingId/mark-shipped
+router.patch("/:bookingId/mark-shipped", canAccessBooking, markAsShipped);
 
-// export default router;
+// PATCH /api/v1/lender/bookings/:bookingId/mark-picked-up
+router.patch("/:bookingId/mark-picked-up", canAccessBooking, markAsPickedUp);
+
+// PATCH /api/v1/lender/bookings/:bookingId/record-try-on-outcome
+router.patch("/:bookingId/record-try-on-outcome", canAccessBooking, recordTryOnOutcome);
+
+// PATCH /api/v1/lender/bookings/:bookingId/mark-received
+router.patch("/:bookingId/mark-received", canAccessBooking, markAsReceived);
+
+// PATCH /api/v1/lender/bookings/:bookingId/cancel
+router.patch("/:bookingId/cancel", canAccessBooking, cancelBooking);
+
+// POST /api/v1/lender/bookings/:bookingId/disputes
+router.post("/:bookingId/disputes", canAccessBooking, raiseDispute);
+
+export default router;
