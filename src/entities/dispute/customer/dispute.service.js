@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
 import { Booking } from "../../booking/booking.model.js";
 import { Dispute } from "../dispute.model.js";
 
 
 export const createDispute = async (customerId, bookingId, disputeData) => {
   const booking = await Booking.findOne({ _id: bookingId, customer: customerId });
+  
   if (!booking) {
     const err = new Error("Booking not found or not owned by customer");
     err.statusCode = 404;
@@ -36,40 +36,38 @@ export const createDispute = async (customerId, bookingId, disputeData) => {
 };
 
 
-export const getDisputesByCustomer = async (customerId, filters = {}) => {
-  const query = { customer: customerId };
+export const getCustomerDisputesService = async (customerId, page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
 
-  if (filters.status) {
-    query.status = filters.status;
-  }
+  const [disputes, total] = await Promise.all([
+    Dispute.find({ createdBy: customerId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("booking", "listing deliveryMethod status") 
+      .lean(),
 
-  if (filters.startDate || filters.endDate) {
-    query.createdAt = {};
-    if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate);
-    if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate);
-  }
+    Dispute.countDocuments({ createdBy: customerId })
+  ]);
 
-  return await Dispute.find(query).sort({ createdAt: -1 });
+  return {
+    disputes,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  };
 };
 
 
-export const getDisputeById = async (customerId, disputeId) => {
-  if (!mongoose.Types.ObjectId.isValid(disputeId)) return null;
+export const getCustomerDisputeByIdService = async (customerId, disputeId) => {
+  const dispute = await Dispute.findOne({
+    _id: disputeId,
+    createdBy: customerId,
+  })
+    .populate("booking", "listing deliveryMethod status")
+    .populate("createdBy", "name email") 
+    .lean();
 
-  return await Dispute.findOne({ _id: disputeId, customer: customerId });
+  return dispute;
 };
 
-
-export const replyToSupport = async (disputeId, customerId, message) => {
-  const dispute = await getDisputeById(customerId, disputeId);
-  if (!dispute) throw new Error("Dispute not found");
-
-  dispute.history.push({
-    action: "replied",
-    actor: "customer",
-    timestamp: new Date(),
-    note: message
-  });
-
-  return await dispute.save();
-};
