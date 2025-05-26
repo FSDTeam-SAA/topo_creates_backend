@@ -14,12 +14,13 @@ import messageRoutes from '../../entities/message/message.routes.js';
 // import adminBookingRoutes from '../../entities/admin/bookings/bookings.routes.js';
 // import webhookRoutes from '../../entities/webhooks/webhooks.routes.js';
 import customerDispute from '../../entities/dispute/customer/dispute.routes.js';
+import lenderDispute from '../../entities/dispute/lender/dispute.routes.js';
 
 import adminListingRoutes from '../../entities/admin/Lisitngs/ReviewandMain Site Listing/adminListing.routes.js'
 
 const router = express.Router();
 
-// Define all your routes here
+
 router.use('/v1/tests', testRoutes);
 router.use('/v1/auth', authRoutes);
 router.use('/v1/user', userRoutes);
@@ -38,12 +39,14 @@ router.use('/v1/customer/bookings', customerBookingRoutes);
 // app.use('/api/admin/bookings', adminBookingRoutes);
 // app.use('/api/webhooks', webhookRoutes);
 
+
+// admin routes
 router.use('/v1/admin',adminListingRoutes)
 
 
 // dispute routes
-router.use('/v1/disputes/customer', customerDispute);
-
+router.use('/v1/customer/disputes', customerDispute);
+router.use('/v1/lender/disputes', lenderDispute); 
 
 
 

@@ -13,7 +13,6 @@ export const createDisputeByCustomer = async (req, res, next) => {
       return generateResponse(res, 400, false, "Missing required fields");
     }
 
-    // Handle optional file uploads (evidence)
     let evidence = [];
 
     if (req.files && req.files.filename) {
@@ -51,10 +50,12 @@ export const createDisputeByCustomer = async (req, res, next) => {
 export const getCustomerDisputes = async (req, res, next) => {
   try {
     const customerId = req.user?._id;
-    const { status, startDate, endDate } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
-    const disputes = await disputeService.getDisputesByCustomer(customerId, { status, startDate, endDate });
-    return generateResponse(res, 200, true, "Disputes retrieved successfully", disputes);
+    const result = await disputeService.getCustomerDisputesService(customerId, page, limit);
+
+    return generateResponse(res, 200, true, "Customer disputes fetched", result);
   } catch (error) {
     next(error);
   }
@@ -64,36 +65,18 @@ export const getCustomerDisputes = async (req, res, next) => {
 export const getCustomerDisputeById = async (req, res, next) => {
   try {
     const customerId = req.user?._id;
-    const { disputeId } = req.params;
+    const disputeId = req.params.disputeId;
 
-    const dispute = await disputeService.getDisputeById(customerId, disputeId);
+    const dispute = await disputeService.getCustomerDisputeByIdService(customerId, disputeId);
+
     if (!dispute) {
       return generateResponse(res, 404, false, "Dispute not found");
     }
 
-    return generateResponse(res, 200, true, "Dispute retrieved successfully", dispute);
+    return generateResponse(res, 200, true, "Dispute fetched successfully", dispute);
   } catch (error) {
     next(error);
   }
 };
 
-export const replyToSupportByCustomer = async (req, res, next) => {
-  try {
-    const customerId = req.user?._id;
-    const { disputeId } = req.params;
-    const { message } = req.body;
 
-    if (!message) {
-      return generateResponse(res, 400, false, "Message is required");
-    }
-
-    const updatedDispute = await disputeService.replyToSupport(customerId, disputeId, message);
-    if (!updatedDispute) {
-      return generateResponse(res, 404, false, "Dispute not found");
-    }
-
-    return generateResponse(res, 200, true, "Reply sent successfully", updatedDispute);
-  } catch (error) {
-    next(error);
-  }
-};

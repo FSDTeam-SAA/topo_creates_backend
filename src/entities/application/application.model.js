@@ -1,9 +1,7 @@
-
 import mongoose from 'mongoose';
-
 const { Schema } = mongoose;
 
-// lender application schema 
+
 const LenderApplicationSchema = new Schema(
   {
     applicant: {
@@ -31,7 +29,6 @@ const LenderApplicationSchema = new Schema(
       trim: true,
     },
     businessAddress: {
-
       type: String,
       required: [true, 'Business address is required'],
       trim: true,
