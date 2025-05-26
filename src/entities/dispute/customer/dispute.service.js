@@ -28,7 +28,6 @@ export const createDispute = async (customerId, bookingId, disputeData) => {
 
   const savedDispute = await dispute.save();
 
-  // Link the dispute to the booking
   booking.dispute = savedDispute._id;
   await booking.save();
 

@@ -4,6 +4,7 @@ import lenderCredentialsTemplate from '../../lib/lenderCredentialsTemplate.js';
 import sendEmail from '../../lib/sendEmail.js';
 import User from '../auth/auth.model.js'
 
+
 export const createApplication = async (data) => {
   if (!data.businessEmail) {
     throw new Error('Business email is required');
@@ -16,12 +17,11 @@ export const createApplication = async (data) => {
 
   const application = new Application({
     ...data,
-    businessEmail: normalizedEmail, // Ensure consistency in saved data
+    businessEmail: normalizedEmail, 
   });
 
   return await application.save();
 };
-
 
 
 export const getAllApplications = async () => {
@@ -29,11 +29,15 @@ export const getAllApplications = async () => {
   if (!applications) throw new Error('No applications found');
   return applications;
 }
+
+
 export const getApplicationById = async (id) => {
   const application = await Application.findById(id);
   if (!application) throw new Error('Application not found');
   return application;
 }
+
+
 export const updateApplication = async (id, data) => {
   try {
     const prevApp = await Application.findById(id);
@@ -72,8 +76,6 @@ export const updateApplication = async (id, data) => {
             agreedTerms: updatedApplication.agreedTerms,
             agreedCurationPolicy: updatedApplication.agreedCurationPolicy,
 
-
-
           });
 
           await user.save();
@@ -90,21 +92,22 @@ export const updateApplication = async (id, data) => {
             html: emailContent,
           });
 
-          console.log(`✅ Email sent to ${updatedApplication.businessEmail}`);
+          console.log(`Email sent to ${updatedApplication.businessEmail}`);
         } else {
-          console.log(`ℹ️ User already exists for ${updatedApplication.businessEmail}`);
+          console.log(`User already exists for ${updatedApplication.businessEmail}`);
         }
       } catch (userOrEmailErr) {
-        console.error('❌ Error while creating user or sending email:', userOrEmailErr);
+        console.error('Error while creating user or sending email:', userOrEmailErr);
       }
     }
 
     return updatedApplication;
   } catch (err) {
-    console.error('❌ Error in updateApplication:', err);
-    throw err; // rethrow for controller to catch
+    console.error('Error in updateApplication:', err);
+    throw err; 
   }
 };
+
 
 export const deleteApplication = async (id) => {
   const application = await Application.findByIdAndDelete(id);

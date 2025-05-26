@@ -13,7 +13,6 @@ export const createDisputeByCustomer = async (req, res, next) => {
       return generateResponse(res, 400, false, "Missing required fields");
     }
 
-    // Handle optional file uploads (evidence)
     let evidence = [];
 
     if (req.files && req.files.filename) {

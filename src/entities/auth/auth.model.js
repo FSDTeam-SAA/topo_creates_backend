@@ -86,8 +86,9 @@ const UserSchema = new mongoose.Schema(
     allowLocalPickup: { type: Boolean, default: false },
     shipAustraliaWide: { type: Boolean, default: false },
     reviewStockMethod: {
-      type: String,
-      enum: ['Website', 'Instagram', 'Photo', 'In-person', 'Video Call'],
+      website: { type: Boolean, default: false },
+      instagram: { type: Boolean, default: false },
+      keyBrands: { type: Boolean, default: false },
     },
     agreedTerms: { type: Boolean, default: false },
     agreedCurationPolicy: { type: Boolean, default: false },

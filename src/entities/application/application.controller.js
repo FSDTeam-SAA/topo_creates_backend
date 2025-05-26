@@ -1,6 +1,6 @@
 import { generateResponse } from '../../lib/responseFormate.js';
-
 import * as ApplicationService from './application.service.js';
+
 
 export const newApplication = async (req, res) => {
   try {
@@ -29,6 +29,8 @@ export const getAllApplications = async (req, res) => {
         generateResponse(res, 500, false, 'Internal server error', null);
     }
 }
+
+
 export const getApplicationById = async (req, res) => {
     try {
         const application = await ApplicationService.getApplicationById(req.params.id);
@@ -42,6 +44,7 @@ export const getApplicationById = async (req, res) => {
     }
 }
 
+
 export const deleteApplication = async (req, res) => {
     try {
         const application = await ApplicationService.deleteApplication(req.params.id);
@@ -54,7 +57,6 @@ export const deleteApplication = async (req, res) => {
         }
     }
 }
-
 
 
 export const updateApplication = async (req, res) => {
