@@ -8,9 +8,7 @@ export const getAllApprovedDresses = async (req, res) => {
 
   try {
     const { data, pagination } = await listingService.getApprovedDresses(page, limit, skip);
-    return res.status(200).json({
-      status: true,
-      message: 'Approved dresses fetched successfully',
+    return generateResponse(res, 200, true, 'Fetched approved dresses successfully', {
       data,
       pagination,
     });
@@ -24,10 +22,11 @@ export const adminUpdateAnyDress = async (req, res) => {
 
   try {
     const updated = await listingService.adminUpdateDress(dressId, req.body, req.files?.media || []);
-    return res.status(200).json({
-      status: true,
-      message: 'Dress updated successfully',
-      data: updated,
+    return generateResponse(res, 200, true, 'Dress updated successfully', {
+      id: updated._id,
+      dressName: updated.dressName,
+      media: updated.media,
+     
     });
   } catch (err) {
     generateResponse(res, 400, false, 'Failed to update dress', err.message);
@@ -40,10 +39,11 @@ export const toggleActiveStatus = async (req, res) => {
 
   try {
     const updatedDress = await listingService.toggleDressActiveStatus(id, isActive, req.user._id);
-    return res.status(200).json({
-      status: true,
-      message: `Dress has been ${isActive ? 'reactivated' : 'deactivated'} successfully`,
-      data: updatedDress,
+    return generateResponse(res, 200, true, 'Dress active status updated successfully', {
+      id: updatedDress._id,
+      isActive: updatedDress.isActive,
+
+      
     });
   } catch (error) {
     generateResponse(res, 400, false, 'Failed to update active status', error.message);
