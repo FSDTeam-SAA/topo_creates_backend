@@ -1,36 +1,34 @@
 import mongoose, { Schema } from "mongoose";
 
+const FileSchema = new Schema({
+  filename: String,
+  url: String,
+}, { _id: false });
+
+
 const contactSchema = new Schema(
-  {
-    firstName: {
+  { 
+    lender :{
+      type: Schema.Types.ObjectId,
+      ref: "User"
+    },
+    subject: {
       type: String,
       required: true,
       trim: true
-    },
-    lastName: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    address: {
-      type: String,
-      trim: true
-    },
-    phoneNumber: {
-        type: String,
-        trim: true,
-        match: /^[0-9+\-\s()]{7,15}$/ 
     },
     message: {
       type: String,
       required: true,
       trim: true
-    }
+    },
+    evidence: [FileSchema],
   },
   {
     timestamps: true
   }
 );
+
 
 const Contact = mongoose.model("Contact", contactSchema);
 export default Contact;

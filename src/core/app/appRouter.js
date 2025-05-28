@@ -1,13 +1,12 @@
 import express from 'express';
-import testRoutes from '../../entities/test/b.routes.js';
 import authRoutes from '../../entities/auth/auth.routes.js';
 import userRoutes from '../../entities/user/user.routes.js';
-import contactRoutes from '../../entities/contact/contact.routes.js';
+import contactRoutes from '../../entities/lender/contact/contact.routes.js';
 import newsletterSubscriptionRoutes from '../../entities/newsletterSubscription/newsletterSubscription.routes.js'
 import reviewsRoutes from '../../entities/review/review.routes.js'
 import applicationRoutes from '../../entities/application/application.routes.js'
 import lenderRoutes from '../../entities/lender/Listings/lisitngs.routes.js'
-import customerBookingRoutes from '../../entities/customer/bookings/bookings.routes.js';
+import customerBookingRoutes from '../../entities/booking/customer/bookings.routes.js';
 import messageRoutes from '../../entities/message/message.routes.js';
 // import customerBookingRoutes from '../../entities/customer/bookings/bookings.routes.js';
 // import lenderBookingRoutes from '../../entities/lender/bookings/bookings.routes.js';
@@ -15,13 +14,13 @@ import messageRoutes from '../../entities/message/message.routes.js';
 // import webhookRoutes from '../../entities/webhooks/webhooks.routes.js';
 import customerDispute from '../../entities/dispute/customer/dispute.routes.js';
 import lenderDispute from '../../entities/dispute/lender/dispute.routes.js';
-
 import adminListingRoutes from '../../entities/admin/Lisitngs/ReviewandMain Site Listing/adminListing.routes.js'
+import teamRoutes from '../../entities/admin/team/team.routes.js';
+
 
 const router = express.Router();
 
 
-router.use('/v1/tests', testRoutes);
 router.use('/v1/auth', authRoutes);
 router.use('/v1/user', userRoutes);
 router.use('/v1/contact', contactRoutes)
@@ -33,21 +32,25 @@ router.use('/v1/lender', lenderRoutes)
 router.use('/v1/message', messageRoutes)
 
 
-// bookings routes
-router.use('/v1/customer/bookings', customerBookingRoutes);
-// app.use('/api/lender/bookings', lenderBookingRoutes);
-// app.use('/api/admin/bookings', adminBookingRoutes);
-// app.use('/api/webhooks', webhookRoutes);
-
-
 // admin routes
 router.use('/v1/admin',adminListingRoutes)
+router.use('/v1/admin/team', teamRoutes);
+
+
+// lender routes
+router.use('/v1/lender/contact', contactRoutes);
 
 
 // dispute routes
 router.use('/v1/customer/disputes', customerDispute);
 router.use('/v1/lender/disputes', lenderDispute); 
 
+
+// bookings routes
+router.use('/v1/customer/bookings', customerBookingRoutes);
+// app.use('/api/lender/bookings', lenderBookingRoutes);
+// app.use('/api/admin/bookings', adminBookingRoutes);
+// app.use('/api/webhooks', webhookRoutes);
 
 
 export default router;
