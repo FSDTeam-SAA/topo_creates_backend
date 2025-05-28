@@ -7,6 +7,7 @@ const router = express.Router()
 
 router.post('/listings', verifyToken, lenderMiddleware, multerUpload([{ name: "media", maxCount: 5 }]),listDress)
 router.get('/', verifyToken, adminMiddleware, getAllDresses)
+router.get('/', verifyToken, lenderMiddleware, getAllDresses)
 router.get('/:id', verifyToken, adminLenderMiddleware, getDressById)
 router.get('/:lenderId', verifyToken, adminMiddleware, getDressesByLender)
 router.patch('/:id', verifyToken, adminLenderMiddleware, multerUpload([{ name: "media", maxCount: 5 }]),updateDress)
