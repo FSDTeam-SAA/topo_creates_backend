@@ -2,12 +2,6 @@ import mongoose from "mongoose";
 
 const testimonialSchema = new mongoose.Schema(
     {
-        testimonialId: {
-            type: String,
-            required: true,
-            unique: true,
-            trim: true
-        },
         customerName: {
             type: String,
             required: true,
@@ -26,8 +20,8 @@ const testimonialSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ['published'],
-            required: true
+            enum: ['pending', 'approved', 'published', 'rejected', 'archived', 'draft'],
+            default: 'published',
         },
     },
     {

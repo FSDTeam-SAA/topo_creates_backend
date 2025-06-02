@@ -16,6 +16,10 @@ import customerDispute from '../../entities/dispute/customer/dispute.routes.js';
 import lenderDispute from '../../entities/dispute/lender/dispute.routes.js';
 import adminListingRoutes from '../../entities/admin/Lisitngs/ReviewandMain Site Listing/adminListing.routes.js'
 import teamRoutes from '../../entities/admin/team/team.routes.js';
+import bannerRoutes from '../../entities/admin/contentAndCMS/banners/banners.routes.js';
+import testimonialRoutes from '../../entities/admin/contentAndCMS/testimonials/testimonials.routes.js';
+import termsAndConditionsRoutes from '../../entities/admin/contentAndCMS/termsAndConditions/termsAndConditions.routes.js';
+import homepageSectionsRoutes from '../../entities/admin/contentAndCMS/homepageSections/homepageSections.routes.js';
 
 
 const router = express.Router();
@@ -35,6 +39,14 @@ router.use('/v1/message', messageRoutes)
 // admin routes
 router.use('/v1/admin',adminListingRoutes)
 router.use('/v1/admin/team', teamRoutes);
+
+
+// content and CMS routes
+router.use('/v1/banner', bannerRoutes)
+router.use('/v1/testimonoal', testimonialRoutes)
+router.use('/v1/termsAndConditions', termsAndConditionsRoutes); 
+router.use('/v1/homepageSections', homepageSectionsRoutes);
+
 
 
 // lender routes

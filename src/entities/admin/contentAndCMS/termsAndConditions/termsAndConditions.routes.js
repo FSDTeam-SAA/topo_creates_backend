@@ -1,22 +1,28 @@
-import express from 'express';
-import { createItem, getItems, getItemById, updateItem, deleteItem } from './yourController.js';
+import express from "express";
+import {
+  createTerms,
+  getAllTerms,
+  getTermsById,
+  updateTerms,
+  deleteTerms,
+} from "./termsAndConditions.controller.js";
+import { adminMiddleware, verifyToken } from "../../../../core/middlewares/authMiddleware.js";
+
 
 const router = express.Router();
 
-// Create a new item
-router.post('/', createItem);
 
-// Get all items
-router.get('/', getItems);
+router
+  .route("/")
+  .post(verifyToken, adminMiddleware, createTerms)
+  .get(getAllTerms);
 
-// Get a specific item by ID
-router.get('/:id', getItemById);
 
-// Update an item by ID
-router.put('/:id', updateItem);
+router
+  .route("/:id")
+  .get(getTermsById)
+  .put(verifyToken, adminMiddleware, updateTerms)
+  .delete(verifyToken, adminMiddleware, deleteTerms);
 
-// Delete an item by ID
-router.delete('/:id', deleteItem);
 
 export default router;
-

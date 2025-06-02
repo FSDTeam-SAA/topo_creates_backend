@@ -1,26 +1,27 @@
 import Testimonial from "./testimonials.model.js";
 
-export const createTestimonialService = async (data) => {
-  const testimonial = await Testimonial.create(data);
-  return testimonial;
+
+export const createTestimonial = async (data) => {
+  const testimonial = new Testimonial(data);
+  return await testimonial.save();
 };
 
-export const getAllTestimonialsService = async () => {
-  const testimonials = await Testimonial.find().sort({ createdAt: -1 });
-  return testimonials;
+
+export const getAllTestimonials = async () => {
+  return await Testimonial.find().sort({ createdAt: -1 });
 };
 
-export const getTestimonialByIdService = async (id) => {
-  const testimonial = await Testimonial.findById(id);
-  return testimonial;
+
+export const getTestimonialById = async (id) => {
+  return await Testimonial.findById(id);
 };
 
-export const updateTestimonialService = async (id, data) => {
-  const testimonial = await Testimonial.findByIdAndUpdate(id, data, { new: true });
-  return testimonial;
+
+export const updateTestimonial = async (id, updateData) => {
+  return await Testimonial.findByIdAndUpdate(id, updateData, { new: true });
 };
 
-export const deleteTestimonialService = async (id) => {
-  const testimonial = await Testimonial.findByIdAndDelete(id);
-  return testimonial;
+
+export const deleteTestimonial = async (id) => {
+  return await Testimonial.findByIdAndDelete(id);
 };

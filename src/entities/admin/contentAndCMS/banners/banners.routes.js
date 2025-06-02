@@ -1,22 +1,29 @@
-import express from 'express';
-import { createBanner, getAllBanners, getBannerById, updateBanner, deleteBanner } from './banners.controller.js';
+import express from "express";
+import {
+  createBanner,
+  getAllBanners,
+  getBannerById,
+  updateBanner,
+  deleteBanner,
+} from "./banners.controller.js";
+import { adminMiddleware, verifyToken } from "../../../../core/middlewares/authMiddleware.js";
+import { multerUpload } from "../../../../core/middlewares/multer.js";
+
 
 const router = express.Router();
 
-// Create a new banner
-router.post('/', createBanner);
 
-// Get all banners
-router.get('/', getAllBanners);
+router
+  .route("/")
+  .post(verifyToken, adminMiddleware, multerUpload([{ name: "filename", maxCount: 1 }]), createBanner)
+  .get(getAllBanners);
 
-// Get a specific banner by ID
-router.get('/:id', getBannerById);
 
-// Update a banner by ID
-router.put('/:id', updateBanner);
+router
+  .route("/:id")
+  .get(getBannerById)
+  .put(verifyToken, adminMiddleware, multerUpload([{ name: "filename", maxCount: 1 }]), updateBanner)
+  .delete(verifyToken, adminMiddleware, deleteBanner);
 
-// Delete a banner by ID
-router.delete('/:id', deleteBanner);
-
+  
 export default router;
-
