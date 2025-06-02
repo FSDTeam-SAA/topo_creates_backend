@@ -1,25 +1,28 @@
 import Banner from './banners.model.js';
 
-export const createBannerService = async (data) => {
-  const banner = await Banner.create(data);
-  return banner;
+
+export const createBanner = async (data) => {
+  const banner = new Banner(data);
+  return await banner.save();
 };
 
-export const getAllBannersService = async () => {
-  const banners = await Banner.find();
-  return banners;
+
+export const getAllBanners = async () => {
+  return await Banner.find().sort({ createdAt: -1 });
 };
 
-export const getBannerByIdService = async (id) => {
-  const banner = await Banner.findById(id);
-  return banner;
+
+export const getBannerById = async (id) => {
+  return await Banner.findById(id);
 };
 
-export const updateBannerService = async (id, data) => {
-  const banner = await Banner.findByIdAndUpdate(id, data, { new: true });
-  return banner;
+
+export const updateBanner = async (id, data) => {
+  return await Banner.findByIdAndUpdate(id, data, { new: true });
 };
 
-export const deleteBannerService = async (id) => {
-  await Banner.findByIdAndDelete(id);
+
+export const deleteBanner = async (id) => {
+  const result = await Banner.findByIdAndDelete(id);
+  return result !== null;
 };

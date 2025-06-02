@@ -1,56 +1,88 @@
 import { generateResponse } from "../../../../lib/responseFormate.js";
-import Testimonial from "./testimonials.model.js";
+import * as testimonialService from "./testimonials.service.js";
 
-export const createTestimonial = async (req, res) => {
-  try {
-    const testimonial = await Testimonial.create(req.body);
-    generateResponse(testimonial, 'Testimonial created successfully')
-  } catch (error) {
-    res.status(400).json(generateResponse(null, error.message, false));
-  }
-};
 
-export const getAllTestimonials = async (req, res) => {
+export const createTestimonial = async (req, res, next) => {
   try {
-    const testimonials = await Testimonial.find().sort({ createdAt: -1 });
-    res.status(200).json(generateResponse(testimonials, 'Testimonials fetched successfully'));
-  } catch (error) {
-    res.status(400).json(generateResponse(null, error.message, false));
-  }
-};
+    const { customerName, content, rating } = req.body;
 
-export const getTestimonialById = async (req, res) => {
-  try {
-    const testimonial = await Testimonial.findById(req.params.id);
-    if (!testimonial) {
-      return res.status(404).json(generateResponse(null, 'Testimonial not found', false));
+    if (!customerName || !content || !rating) {
+      return generateResponse(res, 400, false, "All required fields must be provided.");
     }
-    res.status(200).json(generateResponse(testimonial, 'Testimonial fetched successfully'));
+  
+    const newTestimonial = await testimonialService.createTestimonial({
+      customerName,
+      content,
+      rating
+    });
+
+    return generateResponse(res, 201, true, "Testimonial created successfully", newTestimonial);
   } catch (error) {
-    res.status(400).json(generateResponse(null, error.message, false));
+    console.error("Error creating testimonial:", error);
+    next(error);
   }
 };
 
-export const updateTestimonial = async (req, res) => {
+
+export const getAllTestimonials = async (req, res, next) => {
   try {
-    const testimonial = await Testimonial.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!testimonial) {
-      return res.status(404).json(generateResponse(null, 'Testimonial not found', false));
-    }
-    res.status(200).json(generateResponse(testimonial, 'Testimonial updated successfully'));
+    const testimonials = await testimonialService.getAllTestimonials();
+    return generateResponse(res, 200, true, "Testimonials fetched successfully", testimonials);
   } catch (error) {
-    res.status(400).json(generateResponse(null, error.message, false));
+    console.error("Error fetching testimonials:", error);
+    next(error);
   }
 };
 
-export const deleteTestimonial = async (req, res) => {
+
+export const getTestimonialById = async (req, res, next) => {
   try {
-    const testimonial = await Testimonial.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    const testimonial = await testimonialService.getTestimonialById(id);
+
     if (!testimonial) {
-      return res.status(404).json(generateResponse(null, 'Testimonial not found', false));
+      return generateResponse(res, 404, false, "Testimonial not found");
     }
-    res.status(200).json(generateResponse(null, 'Testimonial deleted successfully'));
+
+    return generateResponse(res, 200, true, "Testimonial fetched successfully", testimonial);
   } catch (error) {
-    res.status(400).json(generateResponse(null, error.message, false));
+    console.error("Error fetching testimonial by ID:", error);
+    next(error);
+  }
+};
+
+
+export const updateTestimonial = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const updated = await testimonialService.updateTestimonial(id, updateData);
+
+    if (!updated) {
+      return generateResponse(res, 404, false, "Testimonial not found or could not be updated");
+    }
+
+    return generateResponse(res, 200, true, "Testimonial updated successfully", updated);
+  } catch (error) {
+    console.error("Error updating testimonial:", error);
+    next(error);
+  }
+};
+
+
+export const deleteTestimonial = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const deleted = await testimonialService.deleteTestimonial(id);
+
+    if (!deleted) {
+      return generateResponse(res, 404, false, "Testimonial not found or already deleted");
+    }
+
+    return generateResponse(res, 200, true, "Testimonial deleted successfully");
+  } catch (error) {
+    console.error("Error deleting testimonial:", error);
+    next(error);
   }
 };
