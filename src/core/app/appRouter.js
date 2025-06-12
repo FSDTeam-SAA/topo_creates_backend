@@ -20,6 +20,10 @@ import bannerRoutes from '../../entities/admin/contentAndCMS/banners/banners.rou
 import testimonialRoutes from '../../entities/admin/contentAndCMS/testimonials/testimonials.routes.js';
 import termsAndConditionsRoutes from '../../entities/admin/contentAndCMS/termsAndConditions/termsAndConditions.routes.js';
 import homepageSectionsRoutes from '../../entities/admin/contentAndCMS/homepageSections/homepageSections.routes.js';
+import accountRoutes from '../../entities/lender/account settings/account.routes.js';
+
+
+
 
 
 const router = express.Router();
@@ -31,7 +35,9 @@ router.use('/v1/contact', contactRoutes)
 router.use('/v1/newsletterSubscription', newsletterSubscriptionRoutes)
 router.use('/v1/reviews', reviewsRoutes)
 router.use('/v1/application', applicationRoutes)
-router.use('/v1/lender', lenderRoutes)
+router.use('/v1/lender', lenderRoutes);
+
+router.use('/v1/lender/account', accountRoutes);
 
 router.use('/v1/message', messageRoutes)
 

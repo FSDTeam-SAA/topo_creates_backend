@@ -75,7 +75,9 @@ export const updateApplication = async (id, data) => {
             reviewStockMethod: updatedApplication.reviewStockMethod,
             agreedTerms: updatedApplication.agreedTerms,
             agreedCurationPolicy: updatedApplication.agreedCurationPolicy,
-
+            deactivationReason: updatedApplication.deactivationReason,
+            deactivationFeedback: updatedApplication.deactivationFeedback,
+            deactivated : updatedApplication.deactivated,
           });
 
           await user.save();
