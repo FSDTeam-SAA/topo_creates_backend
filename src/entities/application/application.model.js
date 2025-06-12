@@ -51,7 +51,6 @@ const LenderApplicationSchema = new Schema(
       type: String,
       enum: ['1-5', '5-15', '15-30', '30+'],
     },
-  
     allowTryOn: {
       type: Boolean,
       default: false,
@@ -90,6 +89,9 @@ const LenderApplicationSchema = new Schema(
       type: String,
       trim: true,
     },
+    deactivationReason: { type: String , default:'' },
+    deactivationFeedback: { type: String, default: '' },
+    deactivated: { type: Boolean, default: false }
   },
   {
     timestamps: true,

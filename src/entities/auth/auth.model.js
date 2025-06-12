@@ -78,7 +78,7 @@ const UserSchema = new mongoose.Schema(
     instagramHandle: { type: String, trim: true },
     businessWebsite: { type: String, trim: true },
     numberOfDresses: {
-      type: Number,
+      type: String,
       default: 0,
       min: [0, 'Number of dresses cannot be negative'],
     },
@@ -96,6 +96,9 @@ const UserSchema = new mongoose.Schema(
     // Optional: Keep notes or reasonForRejection if admin needs to reference later
     notes: { type: String, trim: true },
     reasonForRejection: { type: String, trim: true },
+    deactivationReason: { type: String , default:'' },
+    deactivationFeedback: { type: String, default: '' },
+    deactivated: { type: Boolean, default: false }
   },
   { timestamps: true }
 );
