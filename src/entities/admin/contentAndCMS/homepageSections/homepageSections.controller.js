@@ -1,6 +1,6 @@
 import { cloudinaryUpload } from "../../../../lib/cloudinaryUpload.js";
 import { generateResponse } from "../../../../lib/responseFormate.js";
-import * as homepageSectionService from "./homepagesections.service.js";
+import * as homepageSectionService from "../homepageSections/homepageSections.service.js";
 
 
 export const createHomepageSection = async (req, res, next) => {

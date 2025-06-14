@@ -5,7 +5,7 @@ import {
   getHomepageSectionById,
   updateHomepageSection,
   deleteHomepageSection,
-} from "./homepagesections.controller.js";
+} from "../homepageSections/homepageSections.controller.js";
 import { adminMiddleware, verifyToken } from "../../../../core/middlewares/authMiddleware.js";
 import { multerUpload } from "../../../../core/middlewares/multer.js";
 
