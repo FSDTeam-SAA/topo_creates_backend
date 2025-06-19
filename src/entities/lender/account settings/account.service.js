@@ -1,7 +1,6 @@
-import bcrypt from "bcrypt";
-import User from "../../auth/auth.model.js";
 import { deactivationOtpEmail } from "../../../lib/deactivationOtpEmail.js";
 import sendEmail from "../../../lib/sendEmail.js";
+import User from "../../auth/auth.model.js";
 
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
