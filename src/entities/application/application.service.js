@@ -58,14 +58,13 @@ export const getAllApplicationsService = async ({
   }
 
   if (Object.keys(userNumberFilters).length > 0) {
-    // Filter User by numbers + role + search
     const userFilter = {
       role: "LENDER",
       ...userNumberFilters,
     };
     if (regex) {
       userFilter.$or = [
-         { fullName: { $regex: regex } },
+        { fullName: { $regex: regex } },
         { firstName: { $regex: regex } },
         { lastName: { $regex: regex } },
       ];
@@ -76,10 +75,9 @@ export const getAllApplicationsService = async ({
       User.countDocuments(userFilter),
     ]);
   } else if (startDate || endDate) {
-    // Filter Application by date + other filters
     const appFilter = { ...applicationDateFilter };
     if (status) appFilter.status = status;
-    if (regex) appFilter.fullName= { $regex: regex };
+    if (regex) appFilter.fullName = { $regex: regex };
 
     [data, total] = await Promise.all([
       Application.find(appFilter).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
@@ -95,32 +93,31 @@ export const getAllApplicationsService = async ({
     ]);
   } else if (status === "approved") {
     const approvedApps = await Application.find({ status: "approved" });
-    const approvedEmails = approvedApps.map((app) => app.businessEmail);
+    const approvedEmails = approvedApps.map(app => app.businessEmail);
 
     const userFilter = {
       email: { $in: approvedEmails },
       role: "LENDER",
     };
-
     if (regex) {
       userFilter.$or = [
-         { fullName: { $regex: regex } },
+        { fullName: { $regex: regex } },
         { firstName: { $regex: regex } },
         { lastName: { $regex: regex } },
       ];
     }
 
-    data = await User.find(userFilter)
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(parseInt(limit));
-  
-
-  total = await User.countDocuments(userFilter);
-
     [data, total] = await Promise.all([
       User.find(userFilter).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
       User.countDocuments(userFilter),
+    ]);
+  } else if (status) {
+    const filter = { status };
+    if (regex) filter.fullName = { $regex: regex };
+
+    [data, total] = await Promise.all([
+      Application.find(filter).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
+      Application.countDocuments(filter),
     ]);
   } else if (search) {
     const [apps, users] = await Promise.all([
@@ -128,7 +125,7 @@ export const getAllApplicationsService = async ({
       User.find({
         role: "LENDER",
         $or: [
-           { fullName: { $regex: regex } },
+          { fullName: { $regex: regex } },
           { firstName: { $regex: regex } },
           { lastName: { $regex: regex } },
         ],
@@ -139,7 +136,6 @@ export const getAllApplicationsService = async ({
     total = combined.length;
     data = combined.slice(skip, skip + parseInt(limit));
   } else {
-    // Default: all Applications + Users with role LENDER
     const [applications, users] = await Promise.all([
       Application.find().sort({ createdAt: -1 }),
       User.find({ role: "LENDER" }).sort({ createdAt: -1 }),
@@ -150,6 +146,14 @@ export const getAllApplicationsService = async ({
     data = combined.slice(skip, skip + parseInt(limit));
   }
 
+  if (total === 0) {
+  return {
+    status: false,
+    message: `No data found with${status ? ` status: ${status}` : " given filters"}`,
+    
+  };
+}
+
   return {
     data,
     pagination: {
@@ -159,6 +163,7 @@ export const getAllApplicationsService = async ({
     },
   };
 };
+
 
 
 export const getApplicationById = async (id) => {
