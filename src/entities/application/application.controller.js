@@ -43,9 +43,7 @@ export const getAllApplications = async (req, res) => {
   } catch (error) {
     console.error("Error fetching applications:", error);
 
-     if (error.message.startsWith("No data found")) {
-      return generateResponse(res, 404, false, error.message, null);
-    }
+    
     return generateResponse(res, 500, false, "Server error while fetching data", null);
   }
 };

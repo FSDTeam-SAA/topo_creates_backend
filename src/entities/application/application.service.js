@@ -149,9 +149,6 @@ export const getAllApplicationsService = async ({
     data = combined.slice(skip, skip + parseInt(limit));
   }
 
- if (total === 0) {
-  throw new Error(`No data found with status: ${status || "given filters"}`);
-}
 
 
 
