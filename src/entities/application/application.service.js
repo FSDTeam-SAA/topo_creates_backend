@@ -65,6 +65,7 @@ export const getAllApplicationsService = async ({
     };
     if (regex) {
       userFilter.$or = [
+         { fullName: { $regex: regex } },
         { firstName: { $regex: regex } },
         { lastName: { $regex: regex } },
       ];
@@ -123,7 +124,7 @@ export const getAllApplicationsService = async ({
     ]);
   } else if (search) {
     const [apps, users] = await Promise.all([
-      Application.find({ fulllName: { $regex: regex } }),
+      Application.find({ fullName: { $regex: regex } }),
       User.find({
         role: "LENDER",
         $or: [
