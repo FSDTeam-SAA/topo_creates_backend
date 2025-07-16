@@ -146,11 +146,18 @@ export const getAllApplicationsService = async ({
     data = combined.slice(skip, skip + parseInt(limit));
   }
 
-  if (total === 0) {
+if (total === 0) {
   return {
     status: false,
     message: `No data found with${status ? ` status: ${status}` : " given filters"}`,
-    
+    data: {
+      data: [],
+      pagination: {
+        total: 0,
+        page: parseInt(page),
+        totalPages: 0,
+      },
+    },
   };
 }
 
