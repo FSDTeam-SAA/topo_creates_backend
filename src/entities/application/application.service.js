@@ -118,7 +118,10 @@ export const getAllApplicationsService = async ({
     [data, total] = await Promise.all([
       Application.find(filter).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
       Application.countDocuments(filter),
+
     ]);
+    
+    
   } else if (search) {
     const [apps, users] = await Promise.all([
       Application.find({ fullName: { $regex: regex } }),
@@ -146,20 +149,11 @@ export const getAllApplicationsService = async ({
     data = combined.slice(skip, skip + parseInt(limit));
   }
 
-if (total === 0) {
-  return {
-    status: false,
-    message: `No data found with${status ? ` status: ${status}` : " given filters"}`,
-    data: {
-      data: [],
-      pagination: {
-        total: 0,
-        page: parseInt(page),
-        totalPages: 0,
-      },
-    },
-  };
+ if (total === 0) {
+  throw new Error(`No data found with status: ${status || "given filters"}`);
 }
+
+
 
   return {
     data,
