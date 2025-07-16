@@ -1,5 +1,5 @@
 import express from "express";
-import { getLenderById, updateLenderById , startDeactivation, sendDeactivationCode, verifyDeactivationCode   } from "./account.controller.js";
+import { getLenderById, sendDeactivationCode, startDeactivation, updateLenderById, verifyDeactivationCode  } from "./account.controller.js";
 import { lenderMiddleware, verifyToken } from "../../../core/middlewares/authMiddleware.js";
 
 

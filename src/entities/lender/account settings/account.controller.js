@@ -4,7 +4,7 @@ import {
   sendDeactivationCodeService,
   startDeactivationService,
   updateLenderByIdService,
-  verifyDeactivationCodeService,
+  verifyDeactivationCodeService
 } from "./account.service.js";
 
 
@@ -52,7 +52,6 @@ export const sendDeactivationCode = async (req, res) => {
 };
 
 
-
 export const verifyDeactivationCode = async (req, res) => {
   try {
     const { code } = req.body;
@@ -62,4 +61,5 @@ export const verifyDeactivationCode = async (req, res) => {
     generateResponse(res, 500, false, "Failed to deactivate account", error.message);
   }
 };
+
 
