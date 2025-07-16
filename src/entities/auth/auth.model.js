@@ -92,6 +92,11 @@ const UserSchema = new mongoose.Schema(
     },
     agreedTerms: { type: Boolean, default: false },
     agreedCurationPolicy: { type: Boolean, default: false },
+    totalbookings: { type: Number, default: 0 },
+    totalRatting: { type: Number, default: 0 },
+    totalListings: { type: Number, default: 0 },
+    totalReveneue: { type: Number, default: 0 },
+
 
     // Optional: Keep notes or reasonForRejection if admin needs to reference later
     notes: { type: String, trim: true },

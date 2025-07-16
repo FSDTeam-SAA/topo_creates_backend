@@ -22,13 +22,28 @@ export const newApplication = async (req, res) => {
 
 
 export const getAllApplications = async (req, res) => {
-    try {
-        const applications = await ApplicationService.getAllApplications();
-        generateResponse(res, 200, true, 'Applications retrieved successfully', applications);
-    } catch (error) {
-        generateResponse(res, 500, false, 'Internal server error', null);
-    }
-}
+  try {
+    const filters = {
+      search: req.query.search,
+      status: req.query.status,
+      totalbookings: req.query.totalbookings,
+      totalRatting: req.query.totalRatting,
+      totalListings: req.query.totalListings,
+      totalReveneue: req.query.totalReveneue,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      page: parseInt(req.query.page) || 1,
+      limit: parseInt(req.query.limit) || 10,
+    };
+
+    const result = await ApplicationService.getAllApplicationsService(filters);
+
+    return generateResponse(res, 200, true, "Data fetched successfully", result);
+  } catch (error) {
+    console.error("Error fetching applications:", error);
+    return generateResponse(res, 500, false, "Server error while fetching data", null);
+  }
+};
 
 
 export const getApplicationById = async (req, res) => {
