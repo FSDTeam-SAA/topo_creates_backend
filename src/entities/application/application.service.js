@@ -111,7 +111,7 @@ export const getAllApplicationsService = async ({
       User.find(userFilter).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
       User.countDocuments(userFilter),
     ]);
-  } else if (status) {
+  } else if (status &&status !== "all") {
     const filter = { status };
     if (regex) filter.fullName = { $regex: regex };
 

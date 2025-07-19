@@ -5,7 +5,7 @@ import { adminMiddleware,verifyToken } from '../../core/middlewares/authMiddlewa
 const router = express.Router();
 
 router.post('/apply', newApplication)
-router.get('/', verifyToken,adminMiddleware, getAllApplications)
+router.get('/', getAllApplications)
 router.get('/:id', verifyToken,adminMiddleware, getApplicationById)
 router.patch('/:id', updateApplication)
 router.delete('/:id', verifyToken, adminMiddleware, deleteApplication)
