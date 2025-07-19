@@ -176,70 +176,92 @@ export const updateApplication = async (id, data) => {
     const prevApp = await Application.findById(id);
     if (!prevApp) throw new Error('Application not found');
 
+    const isAlreadyApproved = prevApp.status === 'approved' && data.status === 'approved';
+if (isAlreadyApproved) {
+  throw new Error(`This lender application has already been approved.`);
+}
+
     const wasPending = prevApp.status === 'pending';
     const isNowApproved = data.status === 'approved';
 
-    const updatedApplication = await Application.findByIdAndUpdate(id, data, { new: true });
-
+    // Prevent status update if user already exists
     if (wasPending && isNowApproved) {
-      try {
-        const existingUser = await User.findOne({ email: updatedApplication.businessEmail });
+      const existingUser = await User.findOne({ email: prevApp.businessEmail });
 
-        if (!existingUser) {
-          const password = generateRandomPassword();
+      if (existingUser) {
+        // Send a polite email to the applicant
+        const conflictEmailContent = `
+          <p>Dear ${prevApp.fullName},</p>
+          <p>Unfortunately, we couldn’t approve your application because the email <strong>${prevApp.businessEmail}</strong> is already associated with an existing lender account.</p>
+          <p>Please try again with a different business email.</p>
+          <p>Thank you,<br/>The Team</p>
+        `;
 
-          const user = new User({
-            email: updatedApplication.businessEmail,
-            username: updatedApplication.businessEmail,
-            password,
-            role: 'LENDER',
-            fullName: updatedApplication.fullName,
-            phoneNumber: updatedApplication.phoneNumber,
+        await sendEmail({
+          to: prevApp.businessEmail,
+          subject: 'Lender Application Error - Email Already Exists',
+          html: conflictEmailContent,
+        });
 
-            businessName: updatedApplication.businessName,
-            businessAddress: updatedApplication.businessAddress,
-            abnNumber: updatedApplication.abnNumber,
-            instagramHandle: updatedApplication.instagramHandle,
-            businessWebsite: updatedApplication.businessWebsite,
-            numberOfDresses: updatedApplication.numberOfDresses,
-            allowTryOn: updatedApplication.allowTryOn,
-            allowLocalPickup: updatedApplication.allowLocalPickup,
-            shipAustraliaWide: updatedApplication.shipAustraliaWide,
-            reviewStockMethod: updatedApplication.reviewStockMethod,
-            agreedTerms: updatedApplication.agreedTerms,
-            agreedCurationPolicy: updatedApplication.agreedCurationPolicy,
-            deactivationReason: updatedApplication.deactivationReason,
-            deactivationFeedback: updatedApplication.deactivationFeedback,
-            deactivated : updatedApplication.deactivated,
-          });
+        console.log(`Conflict email sent to ${prevApp.businessEmail}`);
 
-          await user.save();
+        // Respond with error
+        throw new Error(`This lender application has already been approved.`);
 
-          const emailContent = lenderCredentialsTemplate(
-            updatedApplication.fullName,
-            updatedApplication.businessEmail,
-            password
-          );
-
-          await sendEmail({
-            to: updatedApplication.businessEmail,
-            subject: 'Your Lender Account Details',
-            html: emailContent,
-          });
-
-          console.log(`Email sent to ${updatedApplication.businessEmail}`);
-        } else {
-          console.log(`User already exists for ${updatedApplication.businessEmail}`);
-        }
-      } catch (userOrEmailErr) {
-        console.error('Error while creating user or sending email:', userOrEmailErr);
       }
+
+      // If user does not exist, create the account and send credentials
+      const password = generateRandomPassword();
+
+      const user = new User({
+        email: prevApp.businessEmail,
+        username: prevApp.businessEmail,
+        password,
+        role: 'LENDER',
+        fullName: prevApp.fullName,
+        phoneNumber: prevApp.phoneNumber,
+
+        businessName: prevApp.businessName,
+        businessAddress: prevApp.businessAddress,
+        abnNumber: prevApp.abnNumber,
+        instagramHandle: prevApp.instagramHandle,
+        businessWebsite: prevApp.businessWebsite,
+        numberOfDresses: prevApp.numberOfDresses,
+        allowTryOn: prevApp.allowTryOn,
+        allowLocalPickup: prevApp.allowLocalPickup,
+        shipAustraliaWide: prevApp.shipAustraliaWide,
+        reviewStockMethod: prevApp.reviewStockMethod,
+        agreedTerms: prevApp.agreedTerms,
+        agreedCurationPolicy: prevApp.agreedCurationPolicy,
+        deactivationReason: prevApp.deactivationReason,
+        deactivationFeedback: prevApp.deactivationFeedback,
+        deactivated: prevApp.deactivated,
+      });
+
+      await user.save();
+
+      const emailContent = lenderCredentialsTemplate(
+        prevApp.fullName,
+        prevApp.businessEmail,
+        password
+      );
+
+      await sendEmail({
+        to: prevApp.businessEmail,
+        subject: 'Your Lender Account Details',
+        html: emailContent,
+      });
+
+      console.log(`Credentials email sent to ${prevApp.businessEmail}`);
     }
 
+    // Only update application if no conflict
+    const updatedApplication = await Application.findByIdAndUpdate(id, data, { new: true });
     return updatedApplication;
+
   } catch (err) {
     console.error('Error in updateApplication:', err);
-    throw err; 
+    throw err;
   }
 };
 

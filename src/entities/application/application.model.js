@@ -85,7 +85,11 @@ const LenderApplicationSchema = new Schema(
       type: String,
       trim: true,
     },
-    notes: {
+    reason: {
+      type: String,
+      trim: true,
+    },
+     notes: {
       type: String,
       trim: true,
     },

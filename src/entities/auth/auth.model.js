@@ -97,10 +97,9 @@ const UserSchema = new mongoose.Schema(
     totalListings: { type: Number, default: 0 },
     totalReveneue: { type: Number, default: 0 },
 
-
-    // Optional: Keep notes or reasonForRejection if admin needs to reference later
+    // Optional: Keep notes or reason if admin needs to reference later
     notes: { type: String, trim: true },
-    reasonForRejection: { type: String, trim: true },
+    reason: { type: String, default: '' },
     deactivationReason: { type: String , default:'' },
     deactivationFeedback: { type: String, default: '' },
     deactivated: { type: Boolean, default: false }

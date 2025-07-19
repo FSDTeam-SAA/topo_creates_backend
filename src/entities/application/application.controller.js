@@ -78,32 +78,27 @@ export const deleteApplication = async (req, res) => {
 
 
 export const updateApplication = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const updateData = req.body;
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
 
-        const application = await ApplicationService.updateApplication(id, updateData);
+    const application = await ApplicationService.updateApplication(id, updateData);
 
-        const justApproved =
-            updateData.status === 'approved' && application.status === 'approved';
+    generateResponse(res, 200, true, 'Application updated successfully', {
+      application,
+    });
+  } catch (error) {
+    console.error('Error updating application:', error);
 
-        let user = null;
-
-        if (justApproved) {
-            // Create user + send email
-            user = await ApplicationService.updateApplication(id, updateData);
-        }
-
-        generateResponse(res, 200, true, 'Application updated successfully', {
-            application,
-            user: user || undefined,
-        });
-    } catch (error) {
-        console.error('Error updating application:', error);
-        if (error.message === 'Application not found') {
-            generateResponse(res, 404, false, 'Application not found', null);
-        } else {
-            generateResponse(res, 500, false, 'Internal server error', null);
-        }
+    if (error.message === 'Application not found') {
+      generateResponse(res, 404, false, 'Application not found', null);
+    } else if (
+      error.message &&
+      error.message.startsWith('This lender application has already been approved')
+    ) {
+      generateResponse(res, 400, false, error.message, null);
+    } else {
+      generateResponse(res, 500, false, 'Internal server error', null);
     }
+  }
 };

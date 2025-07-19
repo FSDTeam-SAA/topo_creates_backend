@@ -62,7 +62,7 @@ const BookingSchema = new Schema(
         status: String,
         timestamp: { type: Date, default: Date.now },
         updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-        notes: String,
+        reason: String,
       },
     ],
 
