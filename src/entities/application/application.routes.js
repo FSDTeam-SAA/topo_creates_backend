@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/apply', newApplication)
 router.get('/', verifyToken,adminMiddleware, getAllApplications)
 router.get('/:id', verifyToken,adminMiddleware, getApplicationById)
-router.patch('/:id',verifyToken, adminMiddleware, updateApplication)
+router.patch('/:id', updateApplication)
 router.delete('/:id', verifyToken, adminMiddleware, deleteApplication)
 
 
