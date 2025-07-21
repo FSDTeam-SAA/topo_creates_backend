@@ -30,7 +30,7 @@ const UserSchema = new mongoose.Schema(
     role: {
       type: String,
       default: RoleType.USER,
-      enum: [RoleType.USER, RoleType.ADMIN, RoleType.LENDER],
+      enum: [RoleType.USER, RoleType.ADMIN, RoleType.LENDER,'APPLICANT'],
     },
     bio: { type: String, default: '' },
     address: { type: AddressSchema, default: () => ({}) },
@@ -98,9 +98,17 @@ const UserSchema = new mongoose.Schema(
     totalReveneue: { type: Number, default: 0 },
 
     // Optional: Keep notes or reason if admin needs to reference later
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
+    },
+    applicationSubmittedAt: { type: Date, default: null },
+    applicationReviewedAt: { type: Date, default: null },
+
     notes: { type: String, trim: true },
     reason: { type: String, default: '' },
-    deactivationReason: { type: String , default:'' },
+    deactivationReason: { type: String, default: '' },
     deactivationFeedback: { type: String, default: '' },
     deactivated: { type: Boolean, default: false }
   },
