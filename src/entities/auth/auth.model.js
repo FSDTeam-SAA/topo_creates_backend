@@ -95,7 +95,7 @@ const UserSchema = new mongoose.Schema(
     city: { type: String, default: '' },
     state: { type: String, default: '' },
     country: { type: String, default: '' },
-    postCode: { type: String, default: '' },
+    postcode: { type: String, default: '' },
     suburb: { type: String, default: '' },
     placeName: { type: String, default: '' },
     latitude: { type: Number, default: 0 },
