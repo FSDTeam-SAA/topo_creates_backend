@@ -223,7 +223,7 @@ export const updateApplication = async (id, data) => {
     await User.findByIdAndUpdate(id, data, { new: true });
   }
 
-  return await User.findById(id);
+  return await User.findById(id).select('-password -accessToken -refreshToken');
 };
 
 export const deleteApplication = async (id) => {
