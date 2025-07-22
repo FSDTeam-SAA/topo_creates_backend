@@ -158,7 +158,9 @@ export const updateApplication = async (id, data) => {
   const isNowRejected = data.status === 'rejected'
   if (isAlreadyApproved) throw new Error('This lender application has already been approved.');
 
-  const isNowApproved = user.status === 'pending' && data.status === 'approved';
+ const isNowApproved =
+  ['pending', 'rejected'].includes(user.status) && data.status === 'approved';
+
 
   if (isNowApproved) {
     user.role = 'LENDER';
