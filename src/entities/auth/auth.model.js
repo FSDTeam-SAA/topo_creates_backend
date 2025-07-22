@@ -4,12 +4,6 @@ import jwt from "jsonwebtoken";
 import bcrypt from 'bcrypt';
 import { accessTokenExpires, accessTokenSecrete, refreshTokenExpires, refreshTokenSecrete } from '../../core/config/config.js';
 
-const AddressSchema = new mongoose.Schema({
-  country: { type: String, default: '' },
-  cityState: { type: String, default: '' },
-  roadArea: { type: String, default: '' },
-  postalCode: { type: String, default: '' },
-}, { _id: false });
 
 const UserSchema = new mongoose.Schema(
   {
@@ -30,10 +24,9 @@ const UserSchema = new mongoose.Schema(
     role: {
       type: String,
       default: RoleType.USER,
-      enum: [RoleType.USER, RoleType.ADMIN, RoleType.LENDER,'APPLICANT'],
+      enum: [RoleType.USER, RoleType.ADMIN, RoleType.LENDER, 'APPLICANT'],
     },
     bio: { type: String, default: '' },
-    address: { type: AddressSchema, default: () => ({}) },
 
     profileImage: { type: String, default: '' },
     multiProfileImage: { type: [String], default: [] },
@@ -96,6 +89,20 @@ const UserSchema = new mongoose.Schema(
     totalRatting: { type: Number, default: 0 },
     totalListings: { type: Number, default: 0 },
     totalReveneue: { type: Number, default: 0 },
+
+    //Adress fro lenders from map
+
+    city: { type: String, default: '' },
+    state: { type: String, default: '' },
+    country: { type: String, default: '' },
+    postCode: { type: String, default: '' },
+    suburb: { type: String, default: '' },
+    placeName: { type: String, default: '' },
+    latitude: { type: Number, default: 0 },
+    longitude: { type: Number, default: 0 },
+    address: { type: String, default: '' },
+
+
 
     // Optional: Keep notes or reason if admin needs to reference later
     status: {
