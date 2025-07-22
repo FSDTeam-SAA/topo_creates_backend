@@ -148,13 +148,14 @@ export const updateApplication = async (id, data) => {
 
 
 
-  const user = await User.findById(id);
+  const user = await User.findById(id).select('-password -accessToken -refreshToken');
 
 
 
   if (!user || !user.status) throw new Error('Application not found');
 
   const isAlreadyApproved = user.status === 'approved' && data.status === 'approved';
+  const isNowRejected = data.status === 'rejected'
   if (isAlreadyApproved) throw new Error('This lender application has already been approved.');
 
   const isNowApproved = user.status === 'pending' && data.status === 'approved';
@@ -192,10 +193,32 @@ export const updateApplication = async (id, data) => {
     html: adminEmailContent,
   })
 ]);
+  } else if (isNowRejected) {
+    user.status = 'rejected';
+    user.role = 'APPLICANT';
+    user.applicationReviewedAt = new Date();
 
+    if (data.rejectionNote) {
+      user.rejectionNote = data.rejectionNote;
+    }
 
+    await user.save();
 
+    const userEmailContent = `
+      <p>Dear ${user.fullName || 'Applicant'},</p>
+      <p>We're sorry to inform you that your lender application has been rejected.</p>
+      ${
+        data.rejectionNote
+          ? `<p><strong>Reason:</strong> ${data.rejectionNote}</p>`
+          : ''
+      }
+    `;
 
+    await sendEmail({
+      to: user.email,
+      subject: 'Your Lender Application Rejected',
+      html: userEmailContent,
+    });
   } else {
     await User.findByIdAndUpdate(id, data, { new: true });
   }
