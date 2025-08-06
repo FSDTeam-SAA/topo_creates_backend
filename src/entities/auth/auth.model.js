@@ -102,6 +102,33 @@ const UserSchema = new mongoose.Schema(
     longitude: { type: Number, default: 0 },
     address: { type: String, default: '' },
 
+    // onboarding lender relarted fields
+
+    stripeAccountId: {
+      type: String,
+      default: null,
+    },
+
+    chargesEnabled: {
+      type: Boolean,
+      default: false, 
+    },
+
+    payoutsEnabled: {
+      type: Boolean,
+      default: false,
+    },
+
+    detailsSubmitted: {
+      type: Boolean,
+      default: false,
+    },
+
+    stripeOnboardingCompleted: {
+      type: Boolean,
+      default: false,
+    },
+
 
 
     // Optional: Keep notes or reason if admin needs to reference later

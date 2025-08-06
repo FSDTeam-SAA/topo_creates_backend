@@ -21,7 +21,7 @@ import testimonialRoutes from '../../entities/admin/contentAndCMS/testimonials/t
 import termsAndConditionsRoutes from '../../entities/admin/contentAndCMS/termsAndConditions/termsAndConditions.routes.js';
 import homepageSectionsRoutes from '../../entities/admin/contentAndCMS/homepageSections/homepageSections.routes.js';
 import accountRoutes from '../../entities/lender/account settings/account.routes.js';
-
+import onboardingRoutes from '../../entities/lender/Onboard/onboard.routes.js'
 
 
 
@@ -57,6 +57,10 @@ router.use('/v1/homepageSections', homepageSectionsRoutes);
 
 // lender routes
 router.use('/v1/lender/contact', contactRoutes);
+
+//lender onboard routes
+
+router.use('/v1/lender',onboardingRoutes)
 
 
 // dispute routes
