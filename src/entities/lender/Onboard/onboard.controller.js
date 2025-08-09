@@ -57,7 +57,7 @@ export const refreshStripeAccountStatus = async (req, res) => {
     }
 
     const account = await retrieveStripeAccount(user.stripeAccountId);
-    console.log('Stripe account retrieved:', account);
+    // console.log('Stripe account retrieved:', account);
 
     user.detailsSubmitted = account.details_submitted;
     user.chargesEnabled = account.charges_enabled;
