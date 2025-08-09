@@ -1,6 +1,5 @@
-// services/stripe.service.js
 import Stripe from 'stripe';
-import User from '../../auth/auth.model.js';
+
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
@@ -34,3 +33,5 @@ export async function createOnboardingLink(accountId, refreshUrl, returnUrl) {
 export async function retrieveStripeAccount(accountId) {
   return await stripe.accounts.retrieve(accountId);
 }
+
+
