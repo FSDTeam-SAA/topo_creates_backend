@@ -6,7 +6,8 @@ import { generateResponse } from '../../lib/responseFormate.js';
 
 export const verifyToken = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
-  if (!token) generateResponse(res, 401, false, 'No token, auth denied', null);
+  if (!token) return generateResponse(res, 401, false, 'No token, auth denied', null);
+
 
   try {
     const decoded = jwt.verify(token, accessTokenSecrete);
@@ -17,15 +18,17 @@ export const verifyToken = async (req, res, next) => {
 
   catch (err) {
     if (err.name === "TokenExpiredError") {
-      generateResponse(res, 401, false, 'Token expired', null);
-    }
+  return generateResponse(res, 401, false, 'Token expired', null);
+}
+
+
 
     else if (err.name === "JsonWebTokenError") {
-      generateResponse(res, 401, false, 'Token is not valid', null);
+      return generateResponse(res, 401, false, 'Token is not valid', null);
     }
 
     else if (err.name === "NotBeforeError") {
-      generateResponse(res, 401, false, 'Token not active', null);
+      return generateResponse(res, 401, false, 'Token not active', null);
     }
 
     else {
@@ -41,11 +44,10 @@ const userMiddleware = (req, res, next) => {
   }
   const { role } = req.user;
 
-  if (role !== "USER") {
-    generateResponse(res, 403, false, 'User access only', null);
-  }
-
-  next();
+ if (role !== "USER") {
+  return generateResponse(res, 403, false, 'User access only', null);
+}
+next();
 };
 
 

@@ -1,4 +1,4 @@
-// controllers/stripe.controller.js
+
 import {
   createConnectedAccount,
   createOnboardingLink,
@@ -7,6 +7,7 @@ import {
 import User from '../../auth/auth.model.js';
 import RoleType from '../../../lib/types.js';
 import { generateResponse } from '../../../lib/responseFormate.js';
+import { createLogger } from 'winston';
 
 export const onboardLender = async (req, res) => {
   try {
@@ -49,14 +50,14 @@ export const onboardLender = async (req, res) => {
 
 export const refreshStripeAccountStatus = async (req, res) => {
   try {
-    const userId = req.user.id; 
-    const user = await User.findById(userId);
+    const user = await User.findById(req.user._id);
 
     if (!user?.stripeAccountId) {
       return generateResponse(res, 404, false, 'Stripe account not found.');
     }
 
     const account = await retrieveStripeAccount(user.stripeAccountId);
+    console.log('Stripe account retrieved:', account);
 
     user.detailsSubmitted = account.details_submitted;
     user.chargesEnabled = account.charges_enabled;
@@ -64,8 +65,15 @@ export const refreshStripeAccountStatus = async (req, res) => {
     user.stripeOnboardingCompleted = account.charges_enabled && account.payouts_enabled;
 
     await user.save();
+      const stripeStatus = {
+      stripeAccountId: user.stripeAccountId,
+      detailsSubmitted: user.detailsSubmitted,
+      chargesEnabled: user.chargesEnabled,
+      payoutsEnabled: user.payoutsEnabled,
+      onboardingCompleted: user.stripeOnboardingCompleted,
+    };
 
-    return generateResponse(res, 200, true, 'Account status updated', user);
+    return generateResponse(res, 200, true, 'Account status updated', stripeStatus);
   } catch (err) {
     console.error('Stripe refresh error:', err);
     return generateResponse(res, 500, false, 'Error refreshing account', err.message);
