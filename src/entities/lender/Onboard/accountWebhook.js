@@ -1,4 +1,5 @@
-import User from '../../auth/auth.model.js';
+import User from "../../auth/auth.model.js";
+
 
 export default {
   'account.updated': async (account) => {

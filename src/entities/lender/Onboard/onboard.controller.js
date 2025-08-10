@@ -23,6 +23,11 @@ export const onboardLender = async (req, res) => {
       return generateResponse(res, 404, false, 'Lender not found or unauthorized.');
     }
 
+      if (lender.stripeOnboardingCompleted) {
+      return generateResponse(res, 200, true, 'Stripe onboarding already completed.');
+    }
+
+
     if (!lender.stripeAccountId) {
       const account = await createConnectedAccount(email);
 
