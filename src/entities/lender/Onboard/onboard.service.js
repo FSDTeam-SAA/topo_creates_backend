@@ -35,3 +35,15 @@ export async function retrieveStripeAccount(accountId) {
 }
 
 
+
+export const createStripeLoginLink = async (stripeAccountId, redirectUrl) => {
+  if (!stripeAccountId) {
+    throw new Error("Missing Stripe Account ID");
+  }
+
+  const loginLink = await stripe.accounts.createLoginLink(stripeAccountId, {
+    redirect_url: redirectUrl, 
+  });
+
+  return loginLink.url;
+};

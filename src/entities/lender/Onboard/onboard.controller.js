@@ -2,12 +2,13 @@
 import {
   createConnectedAccount,
   createOnboardingLink,
+  createStripeLoginLink,
   retrieveStripeAccount,
 } from '../Onboard/onboard.service.js';
 import User from '../../auth/auth.model.js';
 import RoleType from '../../../lib/types.js';
 import { generateResponse } from '../../../lib/responseFormate.js';
-import { createLogger } from 'winston';
+
 
 export const onboardLender = async (req, res) => {
   try {
@@ -82,5 +83,27 @@ export const refreshStripeAccountStatus = async (req, res) => {
   } catch (err) {
     console.error('Stripe refresh error:', err);
     return generateResponse(res, 500, false, 'Error refreshing account', err.message);
+  }
+};
+
+
+export const getStripeLoginLink = async (req, res) => {
+  try {
+    const { userId } = req.user._id;
+
+    // Find user to get their connected account ID
+    const user = await User.findById(userId);
+    if (!user || !user.stripeAccountId) {
+      return res.status(404).json({ error: "Connected Stripe account not found" });
+    }
+
+    const url = await createStripeLoginLink(user.stripeAccountId,
+       `${process.env.FRONTEND_URL}/stripe/refresh`
+    );
+
+    res.json({ url });
+  } catch (error) {
+    console.error("Error generating Stripe login link:", error);
+    res.status(500).json({ error: "Failed to generate Stripe login link" });
   }
 };
