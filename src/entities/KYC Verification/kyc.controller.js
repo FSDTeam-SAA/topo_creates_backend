@@ -9,6 +9,7 @@ export const startOrResumeVerification = async (req, res) => {
     const {userId }= req.body
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    console.log("User found:", user);
 
     const { url, reused } = await createOrReuseVerificationSession(user);
 
