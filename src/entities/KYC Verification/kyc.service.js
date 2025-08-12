@@ -44,7 +44,6 @@ export const createOrReuseVerificationSession = async (user) => {
   // Save new session info on user
   user.stripeVerificationSessionId = session.id;
   user.stripeVerificationSessionUrl = session.url;
-  user.stripeVerificationSessionExpiresAt = new Date();
   user.kycStatus = 'pending';
   user.kycVerified = false;
   user.kycLastUpdated = now;
