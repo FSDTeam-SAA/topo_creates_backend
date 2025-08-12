@@ -25,7 +25,7 @@ export const createOrReuseVerificationSession = async (user) => {
     type: 'document',
     options: {
       document: {
-        allowed_types: ['passport', 'driving_license', 'national_id'],
+        allowed_types: ['passport', 'driving_license', 'id_card'],
       },
     },
     metadata: {
@@ -33,10 +33,18 @@ export const createOrReuseVerificationSession = async (user) => {
     },
   });
 
+    console.log("Stripe session expires_at:", session.expires_at);
+
+  if (session.expires_at && !isNaN(session.expires_at)) {
+    user.stripeVerificationSessionExpiresAt = new Date(session.expires_at * 1000);
+  } else {
+    user.stripeVerificationSessionExpiresAt = null;
+  }
+
   // Save new session info on user
   user.stripeVerificationSessionId = session.id;
   user.stripeVerificationSessionUrl = session.url;
-  user.stripeVerificationSessionExpiresAt = new Date(session.expires_at * 1000);
+  user.stripeVerificationSessionExpiresAt = new Date();
   user.kycStatus = 'pending';
   user.kycVerified = false;
   user.kycLastUpdated = now;
