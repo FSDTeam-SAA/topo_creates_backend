@@ -5,8 +5,9 @@ import {
      createMultipleAvatarController,updateMultipleAvatarController,deleteMultipleAvatarController,
      createUserfileController,updateUserfileController,deletefileController
     } from "./user.controller.js";
-import { adminMiddleware, verifyToken } from "../../core/middlewares/authMiddleware.js";
+import { adminMiddleware, userMiddleware, verifyToken } from "../../core/middlewares/authMiddleware.js";
 import express from "express";
+import { startOrResumeVerification } from "../KYC Verification/kyc.controller.js";
 const router = express.Router();
 
 
@@ -34,6 +35,10 @@ router.delete("/upload-multiple-avatar/:id", verifyToken,deleteMultipleAvatarCon
 router.post("/upload-file/:id", verifyToken, multerUpload([{ name: "file", maxCount: 1 },]), createUserfileController);
 router.put("/upload-file/:id", verifyToken, multerUpload([{ name: "file", maxCount: 1 },]), updateUserfileController); 
 router.delete("/upload-file/:id", verifyToken, deletefileController); 
+
+
+//kyc verification
+router.post('/kyc/verify',  startOrResumeVerification);
 
 export default router;
 

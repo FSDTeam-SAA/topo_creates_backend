@@ -101,9 +101,10 @@ export const getStripeLoginLink = async (req, res) => {
        `${process.env.FRONTEND_URL}/stripe/refresh`
     );
 
-    res.json({ url });
+    
+    generateResponse(res, 200, true, 'Stripe login link generated successfully', { url });
   } catch (error) {
     console.error("Error generating Stripe login link:", error);
-    res.status(500).json({ error: "Failed to generate Stripe login link" });
+    generateResponse(res, 500, false, 'Failed to generate Stripe login link');
   }
 };

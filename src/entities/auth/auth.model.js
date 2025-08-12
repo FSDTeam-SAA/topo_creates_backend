@@ -129,9 +129,27 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
 
+    // document verification
+
+     kycVerified: { type: Boolean, default: false },
+
+  kycStatus: {
+    type: String,
+    enum: ['pending', 'requires_input', 'verified', 'failed'],
+    default: 'pending',
+  },
+
+  kycLastUpdated: { type: Date },
+
+  kycDetails: { type: Object },
+
+  stripeVerificationSessionId: { type: String },
+  stripeVerificationSessionUrl: { type: String },
+  stripeVerificationSessionExpiresAt: { type: Date },
 
 
-    // Optional: Keep notes or reason if admin needs to reference later
+
+
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
