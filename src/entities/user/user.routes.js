@@ -38,7 +38,7 @@ router.delete("/upload-file/:id", verifyToken, deletefileController);
 
 
 //kyc verification
-router.post('/kyc/verify',  startOrResumeVerification);
+router.get('/kyc/verify', verifyToken,userMiddleware ,startOrResumeVerification);
 
 export default router;
 
