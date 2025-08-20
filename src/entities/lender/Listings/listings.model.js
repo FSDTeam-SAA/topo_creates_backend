@@ -47,10 +47,28 @@ const ListingSchema = new Schema(
       type: String,
       trim: true,
     },
-    size: {
+   size: {
       type: String,
-      required: [true, 'Size is required'],
-      trim: true,
+      enum: [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL",
+        "XXXL",
+        "4XL",
+        "5XL",
+        "Custom"
+      ],
+      required: true,
+      trim:true
+    },
+    status:{
+    type:String,
+    enum:['available','booked','not-available'],
+    default:'available'
     },
     colour: {
       type: String,
@@ -126,7 +144,21 @@ const ListingSchema = new Schema(
       type: Boolean,
       default: true,
     },
-    isActive: { type: Boolean, default: true },
+
+    // localtion 
+
+    //Adress for dress from map
+
+    city: { type: String, default: '' },
+    state: { type: String, default: '' },
+    country: { type: String, default: '' },
+    postcode: { type: String, default: '' },
+    suburb: { type: String, default: '' },
+    placeName: { type: String, default: '' },
+    latitude: { type: Number, default: 0 },
+    longitude: { type: Number, default: 0 },
+    address: { type: String, default: '' },
+   
     
   },
   {

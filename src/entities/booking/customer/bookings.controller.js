@@ -1,89 +1,102 @@
-import * as bookingService from "./bookings.service.js";
-import { generateResponse } from "../../../lib/responseFormate.js";
+import { generateResponse } from '../../../lib/responseFormate.js';
+import { createBookingService, deleteBookingService, getAllBookingsService, getBookingByIdService, getUserBookingsService, updateBookingService} from '../customer/bookings.service.js';
 
-export const calculateBookingPrice = async (req, res, next) => {
+export const createBookingController = async (req, res) => {
   try {
-    const pricing = await bookingService.calculatePrice(req.body);
-    generateResponse(res, 200, "success", "Price calculated successfully", pricing);
-  } catch (error) {
-    next(error);
-  }
-};
+    const userId = req.user.id;
+    const role = req.user.role; 
 
-export const createBooking = async (req, res) => {
-  try {
-    const customerId = req.user?._id;
-    if (!customerId) return generateResponse(res, 401, false, 'Unauthorized');
+    const booking = await createBookingService({
+      userId,
+      role,
+      body: req.body,
+    });
 
-    const { listingId, rentalStartDate, rentalEndDate } = req.body;
-    if (!listingId || !rentalStartDate || !rentalEndDate) {
-      return generateResponse(res, 400, false, 'Missing required booking fields');
-    }
-
-    const bookingData = {
-      ...req.body,
-      customer: customerId,
-    };
-
-    const newBooking = await bookingService.createBookingService(bookingData);
-    return generateResponse(res, 200, true, 'Booking created successfully', newBooking);
-  } catch (error) {
-    console.error('Create booking error:', error);
-    return generateResponse(res, 500, false, 'Failed to create booking');
+  
+    generateResponse(res, 201, true, "Booking created successfully", booking);
+  } catch (err) {
+    console.error(err);
+    generateResponse(res, 400, false, err.message || "Failed to create booking");
   }
 };
 
 
-export const getMyBookings = async (req, res, next) => {
+//get all bookings 
+
+// GET ALL
+export const getAllBookingsController = async (req, res) => {
   try {
-    const bookings = await bookingService.getBookingsByCustomer(req.user.id);
-    generateResponse(res, 200, "success", "Bookings retrieved successfully", bookings);
-  } catch (error) {
-    next(error);
+    const { page = 1, limit = 10, search, date, lenderId, dressId, customerId } = req.query;
+    const role = req.user.role;
+    const userId = req.user.id;
+
+    const { bookings, paginationInfo } = await getAllBookingsService({
+      page,
+      limit,
+      query: { search, date, lenderId, dressId, customerId },
+      role,
+      userId,
+    });
+
+    generateResponse(res, 200, true, "Bookings fetched successfully", { bookings, paginationInfo });
+  } catch (err) {
+    generateResponse(res, 500, false, err.message);
   }
 };
 
-export const getMyBookingById = async (req, res, next) => {
+
+
+// GET BY BOOKING ID
+export const getBookingByIdController = async (req, res) => {
   try {
-    const booking = await bookingService.getBookingById(req.params.bookingId, req.user.id);
-    generateResponse(res, 200, "success", "Booking detail retrieved", booking);
-  } catch (error) {
-    next(error);
+    const bookingId = req.params.id;
+    const userId = req.user.id; // logged-in user
+    const role = req.user.role; // role: USER, LENDER, ADMIN
+
+    const booking = await getBookingByIdService({ bookingId, userId, role });
+    generateResponse(res, 200, true, "Booking fetched successfully", booking);
+  } catch (err) {
+    generateResponse(res, 404, false, err.message);
   }
 };
 
-export const markBookingReturnedByCustomer = async (req, res, next) => {
+
+// GET BOOKINGS OF LOGGED-IN USER
+export const getUserBookingsController = async (req, res) => {
   try {
-    const updatedBooking = await bookingService.markReturned(req.params.bookingId, req.user.id, req.body);
-    generateResponse(res, 200, "success", "Booking marked as returned", updatedBooking);
-  } catch (error) {
-    next(error);
+    const bookings = await getUserBookingsService(req.user.id);
+    generateResponse(res, 200, true, "User bookings fetched successfully", bookings);
+  } catch (err) {
+    generateResponse(res, 500, false, err.message);
   }
 };
 
-export const cancelBookingByCustomer = async (req, res, next) => {
+
+
+
+// UPDATE BOOKING CONTROLLER
+export const updateBookingController = async (req, res) => {
   try {
-    const result = await bookingService.cancelBooking(req.params.bookingId, req.user.id);
-    generateResponse(res, 200, "success", "Booking cancelled", result);
-  } catch (error) {
-    next(error);
+    const userId = req.user.id;
+    const role = req.user.role; 
+    const bookingId = req.params.id;
+
+    const booking = await updateBookingService({ bookingId, userId, role, updateData: req.body });
+
+    generateResponse(res, 200, true, "Booking updated successfully", booking);
+  } catch (err) {
+    generateResponse(res, 400, false, err.message);
   }
 };
 
-export const openDisputeByCustomer = async (req, res, next) => {
-  try {
-    const dispute = await bookingService.raiseDispute(req.params.bookingId, req.user.id, req.body);
-    generateResponse(res, 201, "success", "Dispute created", dispute);
-  } catch (error) {
-    next(error);
-  }
-};
 
-export const confirmPickupByCustomer = async (req, res, next) => {
+
+// DELETE BOOKING
+export const deleteBookingController = async (req, res) => {
   try {
-    const updated = await bookingService.confirmPickupTime(req.params.bookingId, req.user.id, req.body);
-    generateResponse(res, 200, "success", "Pickup time confirmed", updated);
-  } catch (error) {
-    next(error);
+    const booking = await deleteBookingService(req.params.id);
+    generateResponse(res, 200, true, "Booking deleted successfully", booking);
+  } catch (err) {
+    generateResponse(res, 400, false, err.message);
   }
 };
