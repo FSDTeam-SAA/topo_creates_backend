@@ -2,12 +2,35 @@ import { generateResponse } from "../../../../lib/responseFormate.js";
 import * as listingService from "./adminListing.service.js";
 
 export const getAllApprovedDresses = async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const skip = (page - 1) * limit;
+ 
 
   try {
-    const { data, pagination } = await listingService.getApprovedDresses(page, limit, skip);
+     const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+const {
+      search,
+      size,
+      lenderId,
+     minPrice,
+     maxPrice,
+      fourDaysSelected,
+      eightDaysSelected,
+        category,
+    } = req.query;
+
+    const filters = {
+      search,
+      size,
+      lenderId,
+     minPrice: minPrice !== undefined ? parseFloat(minPrice) : undefined,
+  maxPrice: maxPrice !== undefined ? parseFloat(maxPrice) : undefined,
+      fourDaysSelected: fourDaysSelected === "true",
+      eightDaysSelected: eightDaysSelected === "true",
+        category
+    };
+
+    const {data, pagination } = await listingService.getApprovedDresses(filters,page, limit, skip);
     return res.status(200).json({
       status: true,
       message: 'Approved dresses fetched successfully',
