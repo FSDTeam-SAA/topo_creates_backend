@@ -1,33 +1,16 @@
 import listings from './listings.model.js';
-import { cloudinaryUpload } from "../../../lib/cloudinaryUpload.js";
 import { generateDressId } from '../../../lib/generateDressId.js';
 import Listing from './listings.model.js';
 import { Booking } from '../../booking/booking.model.js';
 import mongoose from 'mongoose';
 
-export const createDress = async (data,files) => {
-  const uploadedMedia = [];
+export const createDress = async (data) => {
+  
 
-  if (files && files.length > 0) {
-    for (const file of files) {
-      const sanitizedName = data.dressName
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[?&=]/g, "");
-
-      const result = await cloudinaryUpload(file.path, sanitizedName, "dresses");
-
-      if (!result?.secure_url) {
-        throw new Error("Failed to upload image to Cloudinary");
-      }
-
-      uploadedMedia.push(result.secure_url);
-    }
-  }
+ 
   const dressId = generateDressId(data.dressName, data.brand);
   const dress = new listings({
     ...data,
-    media: uploadedMedia,
     lenderId: data.lenderId,
     dressId: dressId
   });
@@ -96,34 +79,8 @@ export const getDressesByLenderId = async (lenderId, page, limit, skip, filters)
 };
 
 
-export const updateDress = async (id, updateData, files) => {
-  const uploadedMedia = [];
-
-  // Upload new images if provided
-  if (files && files.length > 0) {
-    for (const file of files) {
-      const sanitizedTitle = updateData.dressName
-        ?.toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[?&=]/g, "") || "dress";
-
-      const result = await cloudinaryUpload(file.path, sanitizedTitle, 'dresses');
-
-      if (!result?.secure_url) {
-        throw new Error('Failed to upload image to Cloudinary');
-      }
-
-      uploadedMedia.push(result.secure_url);
-    }
-  }
-
-  // If new media is uploaded, decide whether to replace or append
-  if (uploadedMedia.length > 0) {
-    updateData.media = uploadedMedia; // this will REPLACE old images
-    // OR to append: 
-    // const existing = await listings.findById(id);
-    // updateData.media = [...existing.media, ...uploadedMedia];
-  }
+export const updateDress = async (id, updateData) => {
+ 
 
   const updatedDress = await listings.findByIdAndUpdate(id, updateData, { new: true });
 

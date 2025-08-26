@@ -10,7 +10,7 @@ export const listDress = async (req, res) => {
 
     };
 
-    const dress = await listingService.createDress(dataWithLender, req.files?.media || []);
+    const dress = await listingService.createDress(dataWithLender);
 
 
     generateResponse(res, 201, true, "Dress listed successfully", dress);
@@ -75,7 +75,7 @@ export const getDressesByLender = async (req, res) => {
 
 export const updateDress = async (req, res) => {
   try {
-    const updated = await listingService.updateDress(req.params.id, req.body, req.files);
+    const updated = await listingService.updateDress(req.params.id, req.body);
     if (!updated) return generateResponse(res, 404, false, "Dress not found");
     generateResponse(res, 200, true, "Dress updated successfully", updated);
   } catch (error) {
