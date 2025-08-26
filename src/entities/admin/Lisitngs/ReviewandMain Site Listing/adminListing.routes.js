@@ -4,7 +4,8 @@ import { multerUpload } from '../../../../core/middlewares/multer.js';
 import {
   getAllApprovedDresses,
   adminUpdateAnyDress,
-  toggleActiveStatus
+  getApprovalStatsController,
+
 } from './adminListing.controller.js';
 
 const router = express.Router();
@@ -18,7 +19,11 @@ router.patch(
   multerUpload([{ name: 'media', maxCount: 5 }]),
   adminUpdateAnyDress
 );
-
-router.patch('/:id/active-status', verifyToken, adminMiddleware, toggleActiveStatus);
+router.get(
+  '/listings/stats',
+  verifyToken,
+  adminMiddleware,
+  getApprovalStatsController
+);
 
 export default router;

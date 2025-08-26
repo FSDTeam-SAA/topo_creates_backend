@@ -34,18 +34,11 @@ export const adminUpdateAnyDress = async (req, res) => {
   }
 };
 
-export const toggleActiveStatus = async (req, res) => {
-  const { id } = req.params;
-  const { isActive } = req.body;
-
+export const getApprovalStatsController = async (req, res) => {
   try {
-    const updatedDress = await listingService.toggleDressActiveStatus(id, isActive, req.user._id);
-    return res.status(200).json({
-      status: true,
-      message: `Dress has been ${isActive ? 'reactivated' : 'deactivated'} successfully`,
-      data: updatedDress,
-    });
+    const stats = await listingService.getApprovalStats();
+    generateResponse(res, 200, true, 'Listings approval stats fetched successfully', stats);
   } catch (error) {
-    generateResponse(res, 400, false, 'Failed to update active status', error.message);
+    generateResponse(res, 500, false, 'Failed to fetch approval stats', error.message);
   }
 };

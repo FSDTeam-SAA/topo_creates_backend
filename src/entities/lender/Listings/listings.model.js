@@ -2,28 +2,20 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
-const AddressSchema = new Schema({
-  addressLine: { type: String, required: true, trim: true },
-  suburb: { type: String, trim: true },
-  state: { type: String, trim: true },
-  postalCode: {
-    type: String,
-    required: [true, 'Postal code is required'],
-    trim: true,
-  },
-});
+
 
 const RentalPriceSchema = new Schema({
   fourDays: {
     type: Number,
-    required: [true, '4-day rental price is required'],
+    
     min: [0, 'Price must be positive'],
   },
   eightDays: {
     type: Number,
-    required: [true, '8-day rental price is required'],
+   
     min: [0, 'Price must be positive'],
   },
+  _id: false
 });
 
 const ListingSchema = new Schema(
@@ -90,15 +82,23 @@ const ListingSchema = new Schema(
     },
     category: {
       type: String,
-      enum: ['Formal', 'Casual', 'Cocktail', 'Bridal', 'Party', 'Workwear', 'Other'],
+      enum: ['Formal',
+    'Casual',
+    'Cocktail',
+    'Bridal',
+    'Party',
+    'Evening Gown',
+    'Ball Gown',
+    'Red Carpet',
+    'Designer',
+    'Haute Couture',
+    'Luxury',
+    'Other'],
       required: [true, 'Category is required'],
     },
-    locations: {
-      type: [AddressSchema],
-      validate: [(val) => val.length > 0, 'At least one location is required'],
-    },
+  
     media: {
-      type: [String], // URLs to Cloudinary or similar
+      type: [String], 
       validate: [(val) => val.length > 0, 'At least one media item is required'],
     },
     description: {
@@ -118,7 +118,7 @@ const ListingSchema = new Schema(
       enum: ['Dry Clean Only', 'Hand Wash', 'Machine Wash', 'Delicate Wash', 'Other'],
     },
     occasion: {
-      type: [String], // can be multiple (e.g., ["Wedding", "Prom"])
+      type: [String],
       default: [],
     },
     
@@ -144,23 +144,7 @@ const ListingSchema = new Schema(
       type: Boolean,
       default: true,
     },
-
-    // localtion 
-
-    //Adress for dress from map
-
-    city: { type: String, default: '' },
-    state: { type: String, default: '' },
-    country: { type: String, default: '' },
-    postcode: { type: String, default: '' },
-    suburb: { type: String, default: '' },
-    placeName: { type: String, default: '' },
-    latitude: { type: Number, default: 0 },
-    longitude: { type: Number, default: 0 },
-    address: { type: String, default: '' },
-   
-    
-  },
+},
   {
     timestamps: true,
     toJSON: {

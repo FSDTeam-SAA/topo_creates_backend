@@ -48,12 +48,17 @@ export const adminUpdateDress = async (id, updateData, files = []) => {
   return updated;
 };
 
-export const toggleDressActiveStatus = async (id, isActive) => {
-  const listing = await listings.findById(id);
-  if (!listing) throw new Error('Dress not found');
 
-  listing.isActive = isActive;
-  await listing.save();
 
-  return listing;
+export const getApprovalStats = async () => {
+  // Total listings
+  const totalListings = await listings.countDocuments();
+
+  // Total approved
+  const totalApproved = await listings.countDocuments({ approvalStatus: 'approved' });
+
+  // Total pending
+  const totalPending = await listings.countDocuments({ approvalStatus: 'pending' });
+
+  return { totalListings, totalApproved, totalPending };
 };
