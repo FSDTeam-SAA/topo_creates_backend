@@ -23,9 +23,12 @@ export const getAllDresses = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
+   const filters = {
+    status: req.query.status || null, // e.g., approved, pending, rejected
+  };
 
   try {
-    const { data, pagination } = await listingService.getAllDresses(page, limit, skip);
+    const { data, pagination } = await listingService.getAllDresses(page, limit, skip,filters);
     return res.status(200).json({
       success: true,
       message: 'Fetched dresses successfully',

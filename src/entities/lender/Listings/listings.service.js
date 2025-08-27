@@ -18,16 +18,26 @@ export const createDress = async (data) => {
   return await dress.save();
 };
 
-export const getAllDresses = async (page, limit, skip) => {
+export const getAllDresses = async (page, limit, skip,filters) => {
+    const query = {};
+
+  // Apply approvalStatus filter if provided
+  if (filters.status) {
+    query.approvalStatus = filters.status;
+  }
+  console.log(query);
+  
   const allDresses = await listings
-    .find()
+
+    .find(query)
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .populate('lenderId', 'fullName email')
     .lean();
 
-  const totalItems = await listings.countDocuments();
+
+  const totalItems = await listings.countDocuments(query);
   const totalPages = Math.ceil(totalItems / limit);
 
   return {
