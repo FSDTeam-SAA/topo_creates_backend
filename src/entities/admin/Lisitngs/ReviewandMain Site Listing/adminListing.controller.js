@@ -20,15 +20,15 @@ const {
     } = req.query;
 
     const filters = {
-      search,
-      size,
-      lenderId,
-     minPrice: minPrice !== undefined ? parseFloat(minPrice) : undefined,
-  maxPrice: maxPrice !== undefined ? parseFloat(maxPrice) : undefined,
-      fourDaysSelected: fourDaysSelected === "true",
-      eightDaysSelected: eightDaysSelected === "true",
-        category
-    };
+  search: search?.trim() || undefined,
+  size: size === "All" ? undefined : size,
+  lenderId: lenderId === "All" ? undefined : lenderId,
+  minPrice: minPrice !== undefined && minPrice !== "All" ? parseFloat(minPrice) : undefined,
+  maxPrice: maxPrice !== undefined && maxPrice !== "All" ? parseFloat(maxPrice) : undefined,
+  fourDaysSelected: fourDaysSelected === "true",
+  eightDaysSelected: eightDaysSelected === "true",
+  category: category === "All" ? undefined : category,
+};
 
     const {data, pagination } = await listingService.getApprovedDresses(filters,page, limit, skip);
     return res.status(200).json({
@@ -45,8 +45,12 @@ const {
 export const adminUpdateAnyDress = async (req, res) => {
   const dressId = req.params.id;
 
+   if (!dressId) {
+      return res.status(400).json({ status: false, message: "Dress ID is required" });
+    }
+
   try {
-    const updated = await listingService.adminUpdateDress(dressId, req.body, req.files?.media || []);
+    const updated = await listingService.adminUpdateDress(dressId, req.body);
     return res.status(200).json({
       status: true,
       message: 'Dress updated successfully',

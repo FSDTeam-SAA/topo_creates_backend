@@ -1,5 +1,4 @@
 import listings from "../../../lender/Listings/listings.model.js";
-import { cloudinaryUpload } from "../../../../lib/cloudinaryUpload.js";
 
 export const getApprovedDresses = async (filters,page, limit, skip) => {
   const query = { approvalStatus: 'approved' ,isActive: true};
@@ -12,38 +11,43 @@ export const getApprovedDresses = async (filters,page, limit, skip) => {
     ];
   }
 
-  // Size filter
-  if (filters.size) {
-    query.size = { $in: Array.isArray(filters.size) ? filters.size : [filters.size] };
-  }
-    // Category filter
-  if (filters.category) {
-    query.category = filters.category;
-  }
+ // Size filter
+if (filters.size && filters.size !== 'All') {
+  query.size = { $in: Array.isArray(filters.size) ? filters.size : [filters.size] };
+}
 
-  // Lender filter
-  if (filters.lenderId) {
-    query.lenderId = filters.lenderId;
-  }
+// Category filter
+if (filters.category && filters.category !== 'All') {
+  query.category = filters.category;
+}
 
-  // Price filters
+// Lender filter
+if (filters.lenderId && filters.lenderId !== 'All') {
+  query.lenderId = filters.lenderId;
+}
+
+  
    // Unified price filter (applies to both fourDays and eightDays)
-  if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-    query.$or = [
-      {
-        "rentalPrice.fourDays": {
-          ...(filters.minPrice !== undefined ? { $gte: filters.minPrice } : {}),
-          ...(filters.maxPrice !== undefined ? { $lte: filters.maxPrice } : {}),
-        },
+// Price filter
+if (
+  (filters.minPrice !== undefined && filters.minPrice !== 'All') ||
+  (filters.maxPrice !== undefined && filters.maxPrice !== 'All')
+) {
+  query.$or = [
+    {
+      'rentalPrice.fourDays': {
+        ...(filters.minPrice !== undefined && filters.minPrice !== 'All' ? { $gte: filters.minPrice } : {}),
+        ...(filters.maxPrice !== undefined && filters.maxPrice !== 'All' ? { $lte: filters.maxPrice } : {}),
       },
-      {
-        "rentalPrice.eightDays": {
-          ...(filters.minPrice !== undefined ? { $gte: filters.minPrice } : {}),
-          ...(filters.maxPrice !== undefined ? { $lte: filters.maxPrice } : {}),
-        },
+    },
+    {
+      'rentalPrice.eightDays': {
+        ...(filters.minPrice !== undefined && filters.minPrice !== 'All' ? { $gte: filters.minPrice } : {}),
+        ...(filters.maxPrice !== undefined && filters.maxPrice !== 'All' ? { $lte: filters.maxPrice } : {}),
       },
-    ];
-  }
+    },
+  ];
+}
 
   const [data, totalItems] = await Promise.all([
     listings.find(query).skip(skip).limit(limit) .populate({ path: 'lenderId', select: 'firstName lastName' }).lean(),
@@ -74,24 +78,15 @@ export const getApprovedDresses = async (filters,page, limit, skip) => {
   };
 };
 
-export const adminUpdateDress = async (id, updateData, files = []) => {
+export const adminUpdateDress = async (id, updateData) => {
   const listing = await listings.findById(id);
   if (!listing) throw new Error('Dress not found');
 
-  let uploadedMedia = listing.media;
-  if (files.length > 0) {
-    uploadedMedia = [];
-    for (const file of files) {
-      const sanitizedName = updateData.dressName?.toLowerCase().replace(/\s+/g, "-").replace(/[?&=]/g, "");
-      const result = await cloudinaryUpload(file.path, sanitizedName, 'dresses');
-      if (!result?.secure_url) throw new Error('Failed to upload image');
-      uploadedMedia.push(result.secure_url);
-    }
-  }
+  
 
   const updated = await listings.findByIdAndUpdate(
     id,
-    { ...updateData, media: uploadedMedia },
+    { ...updateData},
     { new: true }
   );
 

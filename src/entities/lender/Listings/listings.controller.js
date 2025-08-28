@@ -23,8 +23,8 @@ export const getAllDresses = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
-   const filters = {
-    status: req.query.status || null, // e.g., approved, pending, rejected
+    const filters = {
+    status: req.query.status === "All" ? undefined : req.query.status,
   };
 
   try {
@@ -69,7 +69,7 @@ export const getDressesByLender = async (req, res) => {
       lenderId, page, limit, skip, filters
     );
 
-    generateResponse(res, 200, true, "Fetched lender's dresses", data, pagination);
+    generateResponse(res, 200, true, "Fetched lender's dresses", {data, pagination});
   } catch (error) {
     generateResponse(res, 500, false, "Failed to fetch lender's dresses", error.message);
   }

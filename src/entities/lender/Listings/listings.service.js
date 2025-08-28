@@ -22,7 +22,7 @@ export const getAllDresses = async (page, limit, skip,filters) => {
     const query = {};
 
   // Apply approvalStatus filter if provided
-  if (filters.status) {
+  if (filters.status && filters.status !== "All") {
     query.approvalStatus = filters.status;
   }
   console.log(query);
@@ -56,20 +56,39 @@ export const getDressById = async (id) => {
 };
 
 export const getDressesByLenderId = async (lenderId, page, limit, skip, filters) => {
-  const query = { lenderId };
+   // Normalize "All" and empty strings
+  const normalizedFilters = {
+    search: filters.search?.trim() || undefined,
+    size: filters.size === "All" ? undefined : filters.size,
+    condition: filters.condition === "All" ? undefined : filters.condition,
+    status: filters.status === "All" ? undefined : filters.status,
+    pickupOption: filters.pickupOption === "All" ? undefined : filters.pickupOption,
+  };
 
-  if (filters.search) {
-    query.$or = [
-      { dressName: { $regex: filters.search, $options: 'i' } },
-      { brand: { $regex: filters.search, $options: 'i' } },
-      { description: { $regex: filters.search, $options: 'i' } }
-    ];
+  const query = { lenderId };
+  const andConditions= [];
+
+  // Search filter
+  if (normalizedFilters.search) {
+    andConditions.push({
+      $or: [
+        { dressName: { $regex: normalizedFilters.search, $options: "i" } },
+        { brand: { $regex: normalizedFilters.search, $options: "i" } },
+        { description: { $regex: normalizedFilters.search, $options: "i" } },
+      ],
+    });
   }
 
-  if (filters.condition) query.condition = filters.condition;
-  if (filters.status) query.status = filters.status;
-  if (filters.pickupOption) query.pickupOption = filters.pickupOption;
-  if (filters.size) query.size = filters.size;
+  // Other filters
+  if (normalizedFilters.condition) andConditions.push({ condition: normalizedFilters.condition });
+  if (normalizedFilters.status) andConditions.push({ status: normalizedFilters.status });
+  if (normalizedFilters.pickupOption) andConditions.push({ pickupOption: normalizedFilters.pickupOption });
+  if (normalizedFilters.size) andConditions.push({ size: normalizedFilters.size });
+
+  // Apply $and if there are conditions
+  if (andConditions.length > 0) {
+    query.$and = andConditions;
+  }
 
   const dresses = await listings
     .find(query)

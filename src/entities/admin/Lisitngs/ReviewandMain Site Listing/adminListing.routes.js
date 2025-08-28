@@ -1,6 +1,5 @@
 import express from 'express';
 import { verifyToken, adminMiddleware } from '../../../../core/middlewares/authMiddleware.js';
-import { multerUpload } from '../../../../core/middlewares/multer.js';
 import {
   getAllApprovedDresses,
   adminUpdateAnyDress,
@@ -16,7 +15,6 @@ router.patch(
   '/:id',
   verifyToken,
   adminMiddleware,
-  multerUpload([{ name: 'media', maxCount: 5 }]),
   adminUpdateAnyDress
 );
 router.get(
