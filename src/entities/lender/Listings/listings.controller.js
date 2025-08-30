@@ -23,8 +23,9 @@ export const getAllDresses = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
-    const filters = {
+   const filters = {
     status: req.query.status === "All" ? undefined : req.query.status,
+    search: req.query.search || undefined,  // Add search filter here
   };
 
   try {

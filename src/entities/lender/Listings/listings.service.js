@@ -25,6 +25,10 @@ export const getAllDresses = async (page, limit, skip,filters) => {
   if (filters.status && filters.status !== "All") {
     query.approvalStatus = filters.status;
   }
+
+   if (filters.search) {
+    query.dressName = { $regex: filters.search, $options: 'i' }; // Case-insensitive search
+  }
   console.log(query);
   
   const allDresses = await listings
