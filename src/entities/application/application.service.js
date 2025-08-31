@@ -103,6 +103,7 @@ export const getAllApplicationsService = async ({
 
   const query = {
     status: { $ne: null },
+      role: { $in: ['LENDER', 'APPLICANT'] },
   };
 
   if (status && status !== 'all') query.status = status;
