@@ -17,6 +17,7 @@ const {
       fourDaysSelected,
       eightDaysSelected,
         category,
+         latitude, longitude, radius
     } = req.query;
 
     const filters = {
@@ -28,14 +29,19 @@ const {
   fourDaysSelected: fourDaysSelected === "true",
   eightDaysSelected: eightDaysSelected === "true",
   category: category === "All" ? undefined : category,
+  latitude: latitude ? parseFloat(latitude) : undefined,
+  longitude: longitude ? parseFloat(longitude) : undefined,
+  radius: radius ? parseFloat(radius) : 5000,
 };
 
-    const {data, pagination } = await listingService.getApprovedDresses(filters,page, limit, skip);
+    const {data, pagination , reason } = await listingService.getApprovedDresses(filters,page, limit, skip);
     return res.status(200).json({
       status: true,
       message: 'Approved dresses fetched successfully',
       data,
       pagination,
+      reason 
+      
     });
   } catch (err) {
     generateResponse(res, 500, false, 'Failed to fetch dresses', err.message);

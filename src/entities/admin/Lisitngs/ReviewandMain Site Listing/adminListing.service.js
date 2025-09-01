@@ -1,3 +1,4 @@
+import User from "../../../auth/auth.model.js";
 import listings from "../../../lender/Listings/listings.model.js";
 
 export const getApprovedDresses = async (filters,page, limit, skip) => {
@@ -26,6 +27,42 @@ if (filters.lenderId && filters.lenderId !== 'All') {
   query.lenderId = filters.lenderId;
 }
 
+
+// ----------------------
+  // GEO / POSTCODE FILTER
+  // ----------------------
+  if ((filters.latitude && filters.longitude && filters.radius) || filters.postcode) {
+    let lenderIds = [];
+    if (filters.postcode) {
+      // Postcode based
+      const lenders = await User.find({ role: 'LENDER', postcode: filters.postcode }).select('_id');
+      lenderIds = lenders.map(l => l._id);
+    } else if (filters.latitude && filters.longitude && filters.radius) {
+      // Geo based
+      const lenders = await User.find({
+        role: 'LENDER',
+        location: {
+          $nearSphere: {
+            $geometry: { type: 'Point', coordinates: [filters.longitude, filters.latitude] },
+            $maxDistance: filters.radius, 
+          },
+        },
+      }).select('_id');
+      lenderIds = lenders.map(l => l._id);
+    }
+
+   // Only apply if lenders found
+if (lenderIds.length > 0) {
+  query.lenderId = { $in: lenderIds };
+} else {
+  // No nearby lenders, force zero results
+  query.lenderId = { $in: [] };
+}
+  }
+
+
+
+
   
    // Unified price filter (applies to both fourDays and eightDays)
 // Price filter
@@ -53,10 +90,36 @@ if (
     listings.find(query).skip(skip).limit(limit) .populate({ path: 'lenderId', select: 'firstName lastName' }).lean(),
     listings.countDocuments(query),
   ]);
+  // ----------------------
   if (totalItems === 0) {
-    throw new Error('No dresses found with approval status "approved".');
-  }
+    let reason = "No dresses found.";
 
+    if (filters.postcode) {
+      reason = `No dresses found for postcode "${filters.postcode}".`;
+    } else if (filters.latitude && filters.longitude && filters.radius) {
+      reason = `No dresses found within ${filters.radius}m of your location.`;
+    } else if (filters.category && filters.category !== "All") {
+      reason = `No dresses found in category "${filters.category}".`;
+    } else if (filters.size && filters.size !== "All") {
+      reason = `No dresses available in size "${filters.size}".`;
+    } else if (filters.lenderId && filters.lenderId !== "All") {
+      reason = `No dresses found for this lender.`;
+    } else if (
+      (filters.minPrice !== undefined && filters.minPrice !== "All") ||
+      (filters.maxPrice !== undefined && filters.maxPrice !== "All")
+    ) {
+      reason = `No dresses found in the selected price range.`;
+    } else if (filters.search) {
+      reason = `No dresses matched your search "${filters.search}".`;
+    }
+
+    return {
+      success: false,
+      data: [],
+      pagination: { totalPages: 0, totalItems: 0, itemsPerPage: limit },
+      message: reason,
+    };
+  }
     const populatedData = data.map((dress) => ({
     ...dress,
     lenderName: dress.lenderId
@@ -68,6 +131,28 @@ if (
 
   const totalPages = Math.ceil(totalItems / limit);
 
+  // Define reason for consistency
+  let reason;
+  if (totalItems === 0) {
+    if (filters.postcode) reason = `No dresses found for postcode "${filters.postcode}".`;
+    else if (filters.latitude && filters.longitude && filters.radius)
+      reason = `No dresses found within ${filters.radius}m of your location.`;
+    else if (filters.category && filters.category !== "All")
+      reason = `No dresses found in category "${filters.category}".`;
+    else if (filters.size && filters.size !== "All")
+      reason = `No dresses available in size "${filters.size}".`;
+    else if (filters.lenderId && filters.lenderId !== "All")
+      reason = `No dresses found for this lender.`;
+    else if ((filters.minPrice !== undefined && filters.minPrice !== "All") ||
+             (filters.maxPrice !== undefined && filters.maxPrice !== "All"))
+      reason = `No dresses found in the selected price range.`;
+    else if (filters.search)
+      reason = `No dresses matched your search "${filters.search}".`;
+    else reason = "No dresses found.";
+  } else {
+    reason = `${totalItems} dresses found.`;
+  }
+
   return {
     data:populatedData,
     pagination: {
@@ -75,8 +160,15 @@ if (
       totalItems,
       itemsPerPage: limit,
     },
+    reason,
   };
 };
+
+
+
+
+
+
 
 export const adminUpdateDress = async (id, updateData) => {
   const listing = await listings.findById(id);

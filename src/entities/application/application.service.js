@@ -62,11 +62,7 @@ export const createApplication = async (data) => {
     <p>Please review and approve/reject the application in the admin panel.</p>
   `;
 
-  await sendEmail({
-    to: adminEmail,
-    subject: 'New Lender Application Received',
-    html: adminEmailContent,
-  });
+ 
 
   // Email applicant confirmation (no password)
   const applicantEmailContent = `
@@ -75,11 +71,20 @@ export const createApplication = async (data) => {
     <p>We will contact you once your application is reviewed.</p>
   `;
 
-  await sendEmail({
+// Send both emails in parallel to reduce wait time
+await Promise.all([
+  sendEmail({
+    to: adminEmail,
+    subject: 'New Lender Application Received',
+    html: adminEmailContent,
+  }),
+  sendEmail({
     to: user.email,
     subject: 'Your Lender Application Has Been Received',
     html: applicantEmailContent,
-  });
+  }),
+]);
+
 
   // Return the user data (without password)
   user.password = undefined;

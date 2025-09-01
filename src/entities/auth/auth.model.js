@@ -147,6 +147,19 @@ const UserSchema = new mongoose.Schema(
   stripeVerificationSessionUrl: { type: String },
   stripeVerificationSessionExpiresAt: { type: Date },
 
+  // location fro mongo db
+
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+     
+    },
+  },
 
 
 
@@ -166,6 +179,19 @@ const UserSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+UserSchema.pre('save', function(next) {
+  if (typeof this.latitude === 'number' && typeof this.longitude === 'number') {
+    this.location = {
+      type: 'Point',
+      coordinates: [this.longitude, this.latitude], // [lng, lat]
+    };
+  }
+  next();
+});
+
+UserSchema.index({ location: '2dsphere' });
+
 
 
 // Hashing password
@@ -197,6 +223,8 @@ UserSchema.methods.generateAccessToken = function (payload) {
 UserSchema.methods.generateRefreshToken = function (payload) {
   return jwt.sign(payload, refreshTokenSecrete, { expiresIn: refreshTokenExpires });
 };
+
+
 
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
