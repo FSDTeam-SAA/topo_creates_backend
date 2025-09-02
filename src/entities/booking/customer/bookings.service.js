@@ -22,7 +22,7 @@ export const createBookingService = async ({ userId, role, body }) => {
   } = body;
 
    if (role === "USER") {
-    const User = mongoose.model("User"); // make sure User model is imported
+    const User = mongoose.model("User"); 
     const user = await User.findById(userId);
     if (!user || !user.kycVerified) {
       throw new Error("User KYC not verified. Cannot create booking.");
@@ -36,9 +36,7 @@ export const createBookingService = async ({ userId, role, body }) => {
   const listing = await Listing.findById(listingId);
   if (!listing) throw new Error("Listing not found");
 
-  if (listing.status !== 'available') {
-  throw new Error("This dress is not available for booking.");
-}
+
   const bookingData = {
     customer: userId,
     lender: listing.lenderId || null,
@@ -81,7 +79,7 @@ export const createBookingService = async ({ userId, role, body }) => {
   await booking.save(); 
   
   listing.status = 'booked';
-await listing.save();// pre-save hook will compute rentalFee, insuranceFee, totalAmount
+await listing.save();
 
   // Populate customer and lender details
   await booking.populate([
