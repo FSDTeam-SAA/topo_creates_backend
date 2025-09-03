@@ -23,7 +23,7 @@ import homepageSectionsRoutes from '../../entities/admin/contentAndCMS/homepageS
 import accountRoutes from '../../entities/lender/account settings/account.routes.js';
 import onboardingRoutes from '../../entities/lender/Onboard/onboard.routes.js'
 import paymentRoutes from '../../entities/Payment/Booking/payment.routes.js'
-
+import subscriptionRoutes from '../../entities/subscription/subscription.routes.js'
 
 
 const router = express.Router();
@@ -58,7 +58,7 @@ router.use('/v1/homepageSections', homepageSectionsRoutes);
 
 // lender routes
 router.use('/v1/lender/contact', contactRoutes);
-
+router.use('/v1/subscription',subscriptionRoutes)
 //lender onboard routes
 
 router.use('/v1/lender',onboardingRoutes)
