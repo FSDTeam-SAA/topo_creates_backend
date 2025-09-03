@@ -27,6 +27,7 @@ export const createBookingPaymentService = async ({ bookingId, customerId }) => 
     lenderId: booking.lender._id,
     amount: booking.totalAmount,
     listing:booking.listing._id,
+    currency: "aud",
     status: "Pending",
   });
 
