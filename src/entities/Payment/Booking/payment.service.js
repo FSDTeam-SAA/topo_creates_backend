@@ -5,9 +5,9 @@ import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-/**
- * Create a Stripe Checkout session for a booking
- */
+
+ // Create a Stripe Checkout session for a booking
+ 
 export const createBookingPaymentService = async ({ bookingId, customerId }) => {
   const booking = await Booking.findById(bookingId).populate("customer lender listing");
   // console.log("bsda",bookingId);
@@ -15,22 +15,20 @@ export const createBookingPaymentService = async ({ bookingId, customerId }) => 
   if (!booking) throw new Error("Booking not found");
   if (booking.paymentStatus === "Paid") throw new Error("Booking already paid");
 
-
-
-
-
-  // Create Payment record
-  const payment = await Payment.create({
-    type: "booking",
-    bookingId: booking._id,
-    customerId: booking.customer._id,
-    lenderId: booking.lender._id,
-    amount: booking.totalAmount,
-    listing:booking.listing._id,
-    currency: "aud",
-    status: "Pending",
-  });
-
+  let payment = await Payment.findOne({ bookingId: booking._id, status: "Pending" });
+  if (!payment) {
+    // Create a new Payment record
+    payment = await Payment.create({
+      type: "booking",
+      bookingId: booking._id,
+      customerId: booking.customer._id,
+      lenderId: booking.lender._id,
+      listing: booking.listing._id,
+      amount: booking.totalAmount,
+      currency: "aud", 
+      status: "Pending",
+    });
+  }
   // Create Stripe Checkout Session
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
@@ -55,9 +53,16 @@ export const createBookingPaymentService = async ({ bookingId, customerId }) => 
     },
     success_url: `${process.env.FRONTEND_URL}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.FRONTEND_URL}/booking-cancelled`
-  });
+  },
+  {
+      // 4️⃣ Idempotency key prevents duplicate sessions
+      idempotencyKey: payment._id.toString(),
+    }
+);
 
   payment.stripe.checkoutSessionId = session.id;
+  payment.stripe.idempotencyKey = payment._id.toString();
+
   await payment.save();
 
   return session.url;

@@ -44,6 +44,7 @@ const PaymentSchema = new mongoose.Schema(
     stripe: {
       paymentIntentId: String,
       checkoutSessionId: String,
+       idempotencyKey: String
     },
     refundDetails: [
       {
