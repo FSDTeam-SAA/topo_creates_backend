@@ -1,5 +1,6 @@
+import { Booking } from "../../booking/booking.model.js";
 import Payment from "./payment.model.js";
-import Booking from "../customer/booking.model.js";
+
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -9,8 +10,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
  */
 export const createBookingPaymentService = async ({ bookingId, customerId }) => {
   const booking = await Booking.findById(bookingId).populate("customer lender listing");
+  console.log("bsda",bookingId);
+  
   if (!booking) throw new Error("Booking not found");
   if (booking.paymentStatus === "Paid") throw new Error("Booking already paid");
+
+
+
+
 
   // Create Payment record
   const payment = await Payment.create({
@@ -19,6 +26,7 @@ export const createBookingPaymentService = async ({ bookingId, customerId }) => 
     customerId: booking.customer._id,
     lenderId: booking.lender._id,
     amount: booking.totalAmount,
+    listing:booking.listing._id,
     status: "Pending",
   });
 

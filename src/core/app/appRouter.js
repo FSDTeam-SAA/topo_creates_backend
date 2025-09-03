@@ -22,7 +22,7 @@ import termsAndConditionsRoutes from '../../entities/admin/contentAndCMS/termsAn
 import homepageSectionsRoutes from '../../entities/admin/contentAndCMS/homepageSections/homepageSections.routes.js';
 import accountRoutes from '../../entities/lender/account settings/account.routes.js';
 import onboardingRoutes from '../../entities/lender/Onboard/onboard.routes.js'
-
+import paymentRoutes from '../../entities/Payment/Booking/payment.routes.js'
 
 
 
@@ -36,7 +36,7 @@ router.use('/v1/newsletterSubscription', newsletterSubscriptionRoutes)
 router.use('/v1/reviews', reviewsRoutes)
 router.use('/v1/application', applicationRoutes)
 router.use('/v1/lender', lenderRoutes);
-
+router.use('/v1/payment', paymentRoutes);
 router.use('/v1/lender/account', accountRoutes);
 
 router.use('/v1/message', messageRoutes)
@@ -45,6 +45,7 @@ router.use('/v1/message', messageRoutes)
 // admin routes
 router.use('/v1/admin',adminListingRoutes)
 router.use('/v1/admin/team', teamRoutes);
+
 
 
 // content and CMS routes

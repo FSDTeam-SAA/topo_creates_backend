@@ -47,6 +47,7 @@ app.use((req, res, next) => {
   }
   express.json({ limit: '10mb' })(req, res, next);
 });
+
 app.use(express.urlencoded({ extended: true }));
 
 // 4️⃣ Rate limiting

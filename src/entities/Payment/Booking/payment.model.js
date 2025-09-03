@@ -22,6 +22,11 @@ const PaymentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+      listing: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Listings",
+      required: true,
+    },
     amount: {
       type: Number,
       required: true,
