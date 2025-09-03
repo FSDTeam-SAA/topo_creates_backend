@@ -1,0 +1,54 @@
+import mongoose from "mongoose";
+
+const PaymentSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ["booking","subscription"], // extendable for subscriptions or products later
+      required: true,
+    },
+    bookingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Booking",
+      required: true,
+    },
+    customerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+      lenderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    amount: {
+      type: Number,
+      required: true,
+    },
+    currency: {
+      type: String,
+      default: "usd",
+    },
+   
+    status: {
+      type: String,
+      enum: ["Pending", "Paid", "Failed", "Refunded"],
+      default: "Pending",
+    },
+    stripe: {
+      paymentIntentId: String,
+      checkoutSessionId: String,
+    },
+    refundDetails: [
+      {
+        refundId: String,
+        amount: Number,
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model("Payment", PaymentSchema);
