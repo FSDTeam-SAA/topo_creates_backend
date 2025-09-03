@@ -87,7 +87,7 @@ if (
 }
 
   const [data, totalItems] = await Promise.all([
-    listings.find(query).skip(skip).limit(limit) .populate({ path: 'lenderId', select: 'firstName lastName' }).lean(),
+    listings.find(query).skip(skip).limit(limit) .populate({ path: 'lenderId', select: 'fullName firstName lastName email longitude latitude' }).lean(),
     listings.countDocuments(query),
   ]);
   // ----------------------
@@ -125,7 +125,7 @@ if (
     lenderName: dress.lenderId
       ? `${dress.lenderId.firstName} ${dress.lenderId.lastName}`
       : 'Unknown',
-    lenderId: dress.lenderId._id, 
+    lenderId: dress.lenderId, 
   }));
 
 
