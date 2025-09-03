@@ -57,7 +57,7 @@ const BookingSchema = new Schema(
     stripeTransferId: { type: String },
     paymentStatus: {
       type: String,
-      enum: ['Pending', 'Succeeded', 'Failed', 'Refunded', 'PartiallyRefunded'],
+      enum: ['Pending', 'Paid','Succeeded', 'Failed', 'Refunded', 'PartiallyRefunded'],
       default: 'Pending',
     },
     payoutStatus: {

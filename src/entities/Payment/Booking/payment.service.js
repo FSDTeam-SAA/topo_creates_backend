@@ -10,7 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
  */
 export const createBookingPaymentService = async ({ bookingId, customerId }) => {
   const booking = await Booking.findById(bookingId).populate("customer lender listing");
-  console.log("bsda",bookingId);
+  // console.log("bsda",bookingId);
   
   if (!booking) throw new Error("Booking not found");
   if (booking.paymentStatus === "Paid") throw new Error("Booking already paid");
