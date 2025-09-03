@@ -31,7 +31,8 @@ if (filters.lenderId && filters.lenderId !== 'All') {
 // ----------------------
   // GEO / POSTCODE FILTER
   // ----------------------
-  if ((filters.latitude && filters.longitude && filters.radius) || filters.postcode) {
+  if ((filters.latitude && filters.longitude ) || filters.postcode) {
+     const searchRadius = filters.radius || 2000;
     let lenderIds = [];
     if (filters.postcode) {
       // Postcode based
@@ -44,7 +45,7 @@ if (filters.lenderId && filters.lenderId !== 'All') {
         location: {
           $nearSphere: {
             $geometry: { type: 'Point', coordinates: [filters.longitude, filters.latitude] },
-            $maxDistance: filters.radius, 
+            $maxDistance: searchRadius, 
           },
         },
       }).select('_id');
