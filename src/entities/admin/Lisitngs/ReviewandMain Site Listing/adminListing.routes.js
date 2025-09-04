@@ -4,6 +4,7 @@ import {
   getAllApprovedDresses,
   adminUpdateAnyDress,
   getApprovalStatsController,
+  getDressByIdController,
 
 } from './adminListing.controller.js';
 
@@ -23,5 +24,6 @@ router.get(
   adminMiddleware,
   getApprovalStatsController
 );
+router.get('/dress/:id',getDressByIdController)
 
 export default router;

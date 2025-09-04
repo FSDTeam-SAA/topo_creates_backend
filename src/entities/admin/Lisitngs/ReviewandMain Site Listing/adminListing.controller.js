@@ -75,3 +75,22 @@ export const getApprovalStatsController = async (req, res) => {
     generateResponse(res, 500, false, 'Failed to fetch approval stats', error.message);
   }
 };
+
+
+
+export const getDressByIdController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await listingService.getDressById(id);
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};

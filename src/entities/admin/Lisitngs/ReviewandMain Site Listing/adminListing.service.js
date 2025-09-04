@@ -1,4 +1,5 @@
 import User from "../../../auth/auth.model.js";
+import { Booking } from "../../../booking/booking.model.js";
 import listings from "../../../lender/Listings/listings.model.js";
 
 export const getApprovedDresses = async (filters,page, limit, skip) => {
@@ -199,4 +200,50 @@ export const getApprovalStats = async () => {
   const totalPending = await listings.countDocuments({ approvalStatus: 'pending' });
 
   return { totalListings, totalApproved, totalPending };
+};
+
+
+
+export const getDressById = async (dressId) => {
+  // 1. Find dress
+  const dress = await listings.findById(dressId)
+    .populate({ path: "lenderId", select: "firstName lastName email" })
+    .lean();
+
+  if (!dress) {
+    return { success: false, message: "Dress not found" };
+  }
+
+  // 2. Get all bookings for this dress
+  const bookings = await Booking.find({ listing: dressId }).lean();
+
+  // 3. Extract booked date ranges
+  const bookedRanges = bookings.map((b) => {
+    const start = new Date(b.rentalStartDate);
+    const end = new Date(b.rentalEndDate);
+
+    let range = [];
+    let current = new Date(start);
+
+    while (current <= end) {
+      range.push(new Date(current)); // push a copy
+      current.setDate(current.getDate() + 1);
+    }
+
+    return range;
+  });
+
+  // 4. Add booking info into dress response
+  return {
+    success: true,
+    data: {
+      ...dress,
+      bookings: bookings.map((b) => ({
+        rentalStartDate: b.rentalStartDate,
+        rentalEndDate: b.rentalEndDate,
+        rentalDurationDays: b.rentalDurationDays,
+      })),
+      bookedDates: bookedRanges, // array of arrays of exact dates
+    },
+  };
 };
