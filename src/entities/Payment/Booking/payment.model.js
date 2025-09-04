@@ -14,22 +14,22 @@ const PaymentSchema = new mongoose.Schema(
     bookingId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Booking',
-      required: true
+     
     },
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      
     },
     lenderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+     
     },
     listing: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Listings',
-      required: true
+      
     },
     amount: {
       type: Number,
