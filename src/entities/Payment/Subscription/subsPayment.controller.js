@@ -79,8 +79,8 @@ export const payForSubscription = async (req, res) => {
         planId: plan._id.toString(),
         customerId: userId.toString(),
       },
-      success_url: `${process.env.CLIENT_URL}/subscription/success`,
-      cancel_url: `${process.env.CLIENT_URL}/subscription/cancel`,
+      success_url: `${process.env.FRONTEND_URL}/subscription/success`,
+      cancel_url: `${process.env.FRONTEND_URL}/subscription/cancel`,
     });
 
     // ✅ Save checkoutSessionId
