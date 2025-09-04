@@ -1,60 +1,64 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const PaymentSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["booking","subscription"], // extendable for subscriptions or products later
-      required: true,
+      enum: ['booking', 'subscription'], // extendable for subscriptions or products later
+      required: true
     },
+    subscription: {
+      planId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionPlan' }
+    },
+
     bookingId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Booking",
-      required: true,
+      ref: 'Booking',
+      required: true
     },
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: 'User',
+      required: true
     },
-      lenderId: {
+    lenderId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: 'User',
+      required: true
     },
-      listing: {
+    listing: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Listings",
-      required: true,
+      ref: 'Listings',
+      required: true
     },
     amount: {
       type: Number,
-      required: true,
+      required: true
     },
     currency: {
       type: String,
-      default: "usd",
+      default: 'usd'
     },
-   
+
     status: {
       type: String,
-      enum: ["Pending", "Paid", "Failed", "Refunded"],
-      default: "Pending",
+      enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
+      default: 'Pending'
     },
     stripe: {
       paymentIntentId: String,
       checkoutSessionId: String,
-       idempotencyKey: String
+      idempotencyKey: String
     },
     refundDetails: [
       {
         refundId: String,
         amount: Number,
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
+        createdAt: { type: Date, default: Date.now }
+      }
+    ]
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Payment", PaymentSchema);
+export default mongoose.model('Payment', PaymentSchema);

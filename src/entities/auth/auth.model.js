@@ -1,9 +1,13 @@
 import RoleType from '../../lib/types.js';
 import mongoose from 'mongoose';
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { accessTokenExpires, accessTokenSecrete, refreshTokenExpires, refreshTokenSecrete } from '../../core/config/config.js';
-
+import {
+  accessTokenExpires,
+  accessTokenSecrete,
+  refreshTokenExpires,
+  refreshTokenSecrete
+} from '../../core/config/config.js';
 
 const UserSchema = new mongoose.Schema(
   {
@@ -24,7 +28,7 @@ const UserSchema = new mongoose.Schema(
     role: {
       type: String,
       default: RoleType.USER,
-      enum: [RoleType.USER, RoleType.ADMIN, RoleType.LENDER, 'APPLICANT'],
+      enum: [RoleType.USER, RoleType.ADMIN, RoleType.LENDER, 'APPLICANT']
     },
     bio: { type: String, default: '' },
 
@@ -62,8 +66,14 @@ const UserSchema = new mongoose.Schema(
       default: true
     },
 
+    subscription: {
+      planId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionPlan' }
+    },
+
     hasActiveSubscription: { type: Boolean, default: false },
     subscriptionExpireDate: { type: Date, default: null },
+    subscriptionStartDate: { type: Date, default: null },
+
     // Lender-specific fields
     businessName: { type: String, trim: true },
     abnNumber: { type: String, trim: true },
@@ -73,7 +83,7 @@ const UserSchema = new mongoose.Schema(
     numberOfDresses: {
       type: String,
       default: 0,
-      min: [0, 'Number of dresses cannot be negative'],
+      min: [0, 'Number of dresses cannot be negative']
     },
     allowTryOn: { type: Boolean, default: false },
     allowLocalPickup: { type: Boolean, default: false },
@@ -81,7 +91,7 @@ const UserSchema = new mongoose.Schema(
     reviewStockMethod: {
       website: { type: Boolean, default: false },
       instagram: { type: Boolean, default: false },
-      keyBrands: { type: Boolean, default: false },
+      keyBrands: { type: Boolean, default: false }
     },
     agreedTerms: { type: Boolean, default: false },
     agreedCurationPolicy: { type: Boolean, default: false },
@@ -106,62 +116,59 @@ const UserSchema = new mongoose.Schema(
 
     stripeAccountId: {
       type: String,
-      default: null,
+      default: null
     },
 
     chargesEnabled: {
       type: Boolean,
-      default: false, 
+      default: false
     },
 
     payoutsEnabled: {
       type: Boolean,
-      default: false,
+      default: false
     },
 
     detailsSubmitted: {
       type: Boolean,
-      default: false,
+      default: false
     },
 
     stripeOnboardingCompleted: {
       type: Boolean,
-      default: false,
+      default: false
     },
 
     // document verification
 
-     kycVerified: { type: Boolean, default: false },
+    kycVerified: { type: Boolean, default: false },
 
-  kycStatus: {
-    type: String,
-    enum: ['pending', 'requires_input', 'verified', 'failed'],
-    default: 'pending',
-  },
-
-  kycLastUpdated: { type: Date },
-
-  kycDetails: { type: Object },
-
-  stripeVerificationSessionId: { type: String },
-  stripeVerificationSessionUrl: { type: String },
-  stripeVerificationSessionExpiresAt: { type: Date },
-
-  // location fro mongo db
-
-  location: {
-    type: {
+    kycStatus: {
       type: String,
-      enum: ['Point'],
-      default: 'Point',
+      enum: ['pending', 'requires_input', 'verified', 'failed'],
+      default: 'pending'
     },
-    coordinates: {
-      type: [Number], // [longitude, latitude]
-     
+
+    kycLastUpdated: { type: Date },
+
+    kycDetails: { type: Object },
+
+    stripeVerificationSessionId: { type: String },
+    stripeVerificationSessionUrl: { type: String },
+    stripeVerificationSessionExpiresAt: { type: Date },
+
+    // location fro mongo db
+
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point'
+      },
+      coordinates: {
+        type: [Number] // [longitude, latitude]
+      }
     },
-  },
-
-
 
     status: {
       type: String,
@@ -180,11 +187,11 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-UserSchema.pre('save', function(next) {
+UserSchema.pre('save', function (next) {
   if (typeof this.latitude === 'number' && typeof this.longitude === 'number') {
     this.location = {
       type: 'Point',
-      coordinates: [this.longitude, this.latitude], // [lng, lat]
+      coordinates: [this.longitude, this.latitude] // [lng, lat]
     };
   }
   next();
@@ -192,12 +199,9 @@ UserSchema.pre('save', function(next) {
 
 UserSchema.index({ location: '2dsphere' });
 
-
-
 // Hashing password
-UserSchema.pre("save", async function (next) {
-
-  if (!this.isModified("password")) return next();
+UserSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
 
   const hashedPassword = await bcrypt.hash(this.password, 10);
 
@@ -207,25 +211,27 @@ UserSchema.pre("save", async function (next) {
 
 // Password comparison method (bcrypt)
 UserSchema.methods.comparePassword = async function (id, plainPassword) {
-  const { password: hashedPassword } = await User.findById(id).select('password')
+  const { password: hashedPassword } =
+    await User.findById(id).select('password');
 
-  const isMatched = await bcrypt.compare(plainPassword, hashedPassword)
+  const isMatched = await bcrypt.compare(plainPassword, hashedPassword);
 
-  return isMatched
-}
+  return isMatched;
+};
 
 // Generate ACCESS_TOKEN
 UserSchema.methods.generateAccessToken = function (payload) {
-  return jwt.sign(payload, accessTokenSecrete, { expiresIn: accessTokenExpires });
+  return jwt.sign(payload, accessTokenSecrete, {
+    expiresIn: accessTokenExpires
+  });
 };
 
 // Generate REFRESH_TOKEN
 UserSchema.methods.generateRefreshToken = function (payload) {
-  return jwt.sign(payload, refreshTokenSecrete, { expiresIn: refreshTokenExpires });
+  return jwt.sign(payload, refreshTokenSecrete, {
+    expiresIn: refreshTokenExpires
+  });
 };
-
-
-
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 export default User;

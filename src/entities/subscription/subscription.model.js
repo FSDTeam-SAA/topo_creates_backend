@@ -13,6 +13,10 @@ const subscriptionPlanSchema = new mongoose.Schema(
      required:true 
 
     },
+    durationDays:{
+      type:Number,
+      
+    },
     
     description: {
       type: String,

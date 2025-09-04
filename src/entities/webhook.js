@@ -1,6 +1,8 @@
 import Stripe from 'stripe';
 import { handleVerificationSessionEvent } from './KYC Verification/kyc.webhook.js';
 import { handleBookingPaymentEvents } from './Payment/Booking/webhook.controller.js';
+import { handleSubscriptionPaymentEvents } from './Payment/Subscription/subsPayment.webhook.js';
+import Payment from './Payment/Booking/payment.model.js';
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -23,22 +25,61 @@ export const stripeWebhookHandler = async (req, res) => {
 
   try {
     // Map event types to handler functions
-    const eventHandlers = {
-      // KYC events
-      'identity.verification_session.created': handleVerificationSessionEvent,
-      'identity.verification_session.requires_input': handleVerificationSessionEvent,
-      'identity.verification_session.processing': handleVerificationSessionEvent,
-      'identity.verification_session.verified': handleVerificationSessionEvent,
-      'identity.verification_session.canceled': handleVerificationSessionEvent,
-      'identity.verification_session.expired': handleVerificationSessionEvent,
+  const eventHandlers = {
+  // KYC events
+  'identity.verification_session.created': handleVerificationSessionEvent,
+  'identity.verification_session.requires_input': handleVerificationSessionEvent,
+  'identity.verification_session.processing': handleVerificationSessionEvent,
+  'identity.verification_session.verified': handleVerificationSessionEvent,
+  'identity.verification_session.canceled': handleVerificationSessionEvent,
+  'identity.verification_session.expired': handleVerificationSessionEvent,
 
-      // Booking payment events
-      'checkout.session.completed': handleBookingPaymentEvents,
-      'payment_intent.succeeded': handleBookingPaymentEvents,
-      'payment_intent.payment_failed': handleBookingPaymentEvents,
-      'checkout.session.expired': handleBookingPaymentEvents,
-      'charge.refunded': handleBookingPaymentEvents,
-    };
+  // All payment events (booking or subscription)
+  'checkout.session.completed': async (event) => {
+    const metadata = event.data.object.metadata;
+    if (metadata.bookingId) {
+      await handleBookingPaymentEvents(event);
+    } else if (metadata.planId) {
+      await handleSubscriptionPaymentEvents(event);
+    }
+  },
+  'payment_intent.succeeded': async (event) => {
+    const payment = await Payment.findOne({ "stripe.paymentIntentId": event.data.object.id });
+    if (!payment) return;
+    if (payment.bookingId) {
+      await handleBookingPaymentEvents(event);
+    } else if (payment.subscription?.planId) {
+      await handleSubscriptionPaymentEvents(event);
+    }
+  },
+  'payment_intent.payment_failed': async (event) => {
+    const payment = await Payment.findOne({ "stripe.paymentIntentId": event.data.object.id });
+    if (!payment) return;
+    if (payment.bookingId) {
+      await handleBookingPaymentEvents(event);
+    } else if (payment.subscription?.planId) {
+      await handleSubscriptionPaymentEvents(event);
+    }
+  },
+  'checkout.session.expired': async (event) => {
+    const metadata = event.data.object.metadata;
+    if (metadata.bookingId) {
+      await handleBookingPaymentEvents(event);
+    } else if (metadata.planId) {
+      await handleSubscriptionPaymentEvents(event);
+    }
+  },
+  'charge.refunded': async (event) => {
+    const payment = await Payment.findOne({ "stripe.paymentIntentId": event.data.object.payment_intent });
+    if (!payment) return;
+    if (payment.bookingId) {
+      await handleBookingPaymentEvents(event);
+    } else if (payment.subscription?.planId) {
+      await handleSubscriptionPaymentEvents(event);
+    }
+  },
+};
+
 
     // Dispatch to the appropriate handler
     const handler = eventHandlers[event.type];
