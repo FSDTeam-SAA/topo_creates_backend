@@ -36,7 +36,7 @@ export const handleSubscriptionPaymentEvents = async (event) => {
         user.hasActiveSubscription = true;
         user.subscriptionStartDate = new Date();
         user.subscriptionExpireDate = new Date(
-          new Date().setMonth(new Date().getMonth() + 1) // paid plan → 1 month default, adjust as needed
+          new Date().setMonth(new Date().getMonth() + 1)
         );
         user.subscription = { planId };
         await user.save();

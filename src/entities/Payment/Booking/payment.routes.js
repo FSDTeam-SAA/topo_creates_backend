@@ -9,6 +9,6 @@ import { payForSubscription } from "../Subscription/subsPayment.controller.js";
 const router = express.Router()
 
 router.post("/create-checkout-session", verifyToken,userMiddleware, createBookingPaymentController);
-router.post("/subscription/create-checkout-session", verifyToken,lenderMiddleware, payForSubscription);
+router.post("/subscription/create-checkout-session/:planId", verifyToken,lenderMiddleware, payForSubscription);
 
 export default router
