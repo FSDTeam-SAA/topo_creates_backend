@@ -12,7 +12,7 @@ const BookingSchema = new Schema(
     rentalStartDate: { type: Date, required: true },
     rentalEndDate: { type: Date, required: true },
     rentalDurationDays: { type: Number, required: true, enum: [4, 8] },
-
+ listingId: { type: String, required: true },
     size: {
       type: String,
       required: true,

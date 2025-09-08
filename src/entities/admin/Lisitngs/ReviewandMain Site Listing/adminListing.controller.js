@@ -81,6 +81,7 @@ export const getApprovalStatsController = async (req, res) => {
 export const getDressByIdController = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(req.params);
     const result = await listingService.getDressById(id);
     if (!result.success) {
       return res.status(404).json(result);

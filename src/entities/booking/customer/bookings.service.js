@@ -43,6 +43,7 @@ export const createBookingService = async ({ userId, role, body }) => {
     listing: listingId,
     rentalStartDate,
     dressId: listing.dressId,
+    listingId:listing._id,
     rentalEndDate,
     rentalDurationDays,
     size,
@@ -83,7 +84,7 @@ await listing.save();
 
   // Populate customer and lender details
   await booking.populate([
-    { path: "customer", select: "-password -refreshToken" }, // exclude sensitive info
+    { path: "customer", select: "-password -refreshToken" }, 
     { path: "lender", select: "-password -refreshToken" },
     {path:"listing"}
   ]);

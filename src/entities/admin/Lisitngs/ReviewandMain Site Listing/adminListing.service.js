@@ -204,10 +204,10 @@ export const getApprovalStats = async () => {
 
 
 
-export const getDressById = async (dressId) => {
+export const getDressById = async (listing) => {
   // 1. Find dress
-  const dress = await listings.findById(dressId)
-    .populate({ path: "lenderId", select: "firstName lastName email" })
+  const dress = await listings.findById(listing)
+    .populate({ path: "lenderId", select: "firstName fullName lastName  email" })
     .lean();
 
   if (!dress) {
@@ -215,7 +215,7 @@ export const getDressById = async (dressId) => {
   }
 
   // 2. Get all bookings for this dress
-  const bookings = await Booking.find({ listing: dressId }).lean();
+  const bookings = await Booking.find({ listing: listing }).lean();
 
   // 3. Extract booked date ranges
   const bookedRanges = bookings.map((b) => {
@@ -226,7 +226,7 @@ export const getDressById = async (dressId) => {
     let current = new Date(start);
 
     while (current <= end) {
-      range.push(new Date(current)); // push a copy
+      range.push(new Date(current));
       current.setDate(current.getDate() + 1);
     }
 
@@ -243,7 +243,7 @@ export const getDressById = async (dressId) => {
         rentalEndDate: b.rentalEndDate,
         rentalDurationDays: b.rentalDurationDays,
       })),
-      bookedDates: bookedRanges, // array of arrays of exact dates
+      bookedDates: bookedRanges,
     },
   };
 };
