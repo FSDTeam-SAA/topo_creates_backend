@@ -7,8 +7,12 @@ export const createHomepageSection = async (data) => {
 };
 
 
-export const getAllHomepageSections = async () => {
-  return await HomepageSection.find().sort({ createdAt: -1 });
+export const getAllHomepageSections = async (status) => {
+  const filter = {};
+  if (status) {
+    filter.status = status; 
+  }
+  return await HomepageSection.find(filter).sort({ createdAt: -1 });
 };
 
 

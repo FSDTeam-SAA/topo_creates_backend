@@ -7,8 +7,12 @@ export const createTestimonial = async (data) => {
 };
 
 
-export const getAllTestimonials = async () => {
-  return await Testimonial.find().sort({ createdAt: -1 });
+export const getAllTestimonials = async (status) => {
+  const filter = {};
+  if (status) {
+    filter.status = status; 
+  }
+  return await Testimonial.find(filter).sort({ createdAt: -1 });
 };
 
 

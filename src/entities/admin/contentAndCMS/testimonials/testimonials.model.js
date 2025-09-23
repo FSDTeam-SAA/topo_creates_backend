@@ -20,9 +20,9 @@ const testimonialSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ['pending', 'approved', 'published', 'rejected', 'archived', 'draft'],
-            default: 'published',
-        },
+            enum: ['active', 'inactive','draft'],
+            default: 'active',
+        }
     },
     {
         timestamps: true

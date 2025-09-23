@@ -7,8 +7,12 @@ export const createTerms = async (data) => {
 };
 
 
-export const getAllTerms = async () => {
-  return await TermsAndConditions.find().sort({ createdAt: -1 });
+export const getAllTerms = async (status) => {
+  const filter = {};
+  if (status) {
+    filter.status = status; 
+  }
+  return await TermsAndConditions.find(filter).sort({ createdAt: -1 });
 };
 
 
