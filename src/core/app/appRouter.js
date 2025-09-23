@@ -1,7 +1,6 @@
 import express from 'express';
 import authRoutes from '../../entities/auth/auth.routes.js';
 import userRoutes from '../../entities/user/user.routes.js';
-import contactRoutes from '../../entities/lender/contact/contact.routes.js';
 import newsletterSubscriptionRoutes from '../../entities/newsletterSubscription/newsletterSubscription.routes.js'
 import reviewsRoutes from '../../entities/review/review.routes.js'
 import applicationRoutes from '../../entities/application/application.routes.js'
@@ -25,13 +24,12 @@ import onboardingRoutes from '../../entities/lender/Onboard/onboard.routes.js'
 import paymentRoutes from '../../entities/Payment/Booking/payment.routes.js'
 import subscriptionRoutes from '../../entities/subscription/subscription.routes.js'
 import payOutRoutes from '../../entities/lender/payOut/payOuts.routes.js'
-
+import supportRoutes from '../../entities/support/support.routes.js'
 const router = express.Router();
 
 
 router.use('/v1/auth', authRoutes);
 router.use('/v1/user', userRoutes);
-router.use('/v1/contact', contactRoutes)
 router.use('/v1/newsletterSubscription', newsletterSubscriptionRoutes)
 router.use('/v1/reviews', reviewsRoutes)
 router.use('/v1/application', applicationRoutes)
@@ -46,6 +44,7 @@ router.use('/v1/payout',payOutRoutes)
 // admin routes
 router.use('/v1/admin',adminListingRoutes)
 router.use('/v1/admin/team', teamRoutes);
+router.use('/v1/support',supportRoutes)
 
 
 
@@ -58,7 +57,6 @@ router.use('/v1/homepageSections', homepageSectionsRoutes);
 
 
 // lender routes
-router.use('/v1/lender/contact', contactRoutes);
 router.use('/v1/subscription',subscriptionRoutes)
 //lender onboard routes
 
