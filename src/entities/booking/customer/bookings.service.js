@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import { Booking } from "../booking.model.js";
 import Listing from "../../lender/Listings/listings.model.js";
 import { createFilter, createPaginationInfo } from "../../../lib/pagination.js";
+import payOutModel from "../../lender/payOut/payOut.model.js";
+import paymentModel from "../../Payment/Booking/payment.model.js";
 
 
 export const createBookingService = async ({ userId, role, body }) => {
@@ -202,4 +204,53 @@ export const deleteBookingService = async (bookingId) => {
   }
 
   return booking;
+};
+
+
+/**
+ * Fetch payout request by bookingId
+ * @param {String} bookingId
+ * @returns {Object} payout request data
+ */
+export const getPayoutByBookingIdService = async (bookingId) => {
+  if (!bookingId) {
+    throw new Error("Booking ID is required");
+  }
+
+  const payout = await payOutModel.findOne({ bookingId });
+    const payment = await paymentModel.findOne({ bookingId });
+  if (!payment) {
+    throw new Error("No payment found for this booking");
+  }
+
+  if (!payout) {
+    throw new Error("No payout request found for this booking");
+  }
+
+  return {payout,payment};
+};
+
+
+
+export const getLenderBookingStatsService = async () => {
+  // Example: Fetch all bookings and payouts regardless of lender
+  const allBookings = await paymentModel.find({ type: "booking" });
+  // console.log("ll",allBookings);
+  const totalBookingsCount = allBookings.length;
+  const totalBookingsAmount = allBookings.reduce((sum, b) => sum + (b.amount || 0), 0);
+
+  const paidBookings = allBookings.filter((b) => b.status === "Paid");
+  const paidBookingCount = paidBookings.length;
+  const paidBookingsAmount = paidBookings.reduce((sum, b) => sum + (b.amount || 0), 0);
+
+  const paidPayouts = await payOutModel.find({ status: "paid" });
+  const totalProfit = paidPayouts.reduce((sum, p) => sum + (p.bookingAmount - p.requestedAmount), 0);
+
+  return {
+    totalBookingsCount,
+    totalBookingsAmount,
+    paidBookingCount,
+    paidBookingsAmount,
+    totalProfit
+  };
 };

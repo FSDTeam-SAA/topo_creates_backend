@@ -1,5 +1,5 @@
 import { generateResponse } from '../../../lib/responseFormate.js';
-import { createBookingService, deleteBookingService, getAllBookingsService, getBookingByIdService, getUserBookingsService, updateBookingService} from '../customer/bookings.service.js';
+import { createBookingService, deleteBookingService, getAllBookingsService, getBookingByIdService, getLenderBookingStatsService, getPayoutByBookingIdService, getUserBookingsService, updateBookingService} from '../customer/bookings.service.js';
 
 export const createBookingController = async (req, res) => {
   try {
@@ -89,6 +89,21 @@ export const updateBookingController = async (req, res) => {
   }
 };
 
+export const getPayoutByBookingIdController = async (req, res) => {
+  try {
+    // Take bookingId from params instead of query
+    const { bookingId } = req.params;
+
+    const payout = await getPayoutByBookingIdService(bookingId);
+
+    generateResponse(res, 200, true, "Payout request fetched successfully", payout);
+  } catch (err) {
+    console.error(err);
+    generateResponse(res, 400, false, err.message || "Failed to fetch payout request");
+  }
+};
+
+
 
 
 // DELETE BOOKING
@@ -98,5 +113,18 @@ export const deleteBookingController = async (req, res) => {
     generateResponse(res, 200, true, "Booking deleted successfully", booking);
   } catch (err) {
     generateResponse(res, 400, false, err.message);
+  }
+};
+
+
+
+export const getLenderBookingStatsController = async (req, res) => {
+  try {
+    const stats = await getLenderBookingStatsService(); 
+
+    generateResponse(res, 200, true, "Lender booking stats fetched successfully", stats);
+  } catch (err) {
+    console.error(err);
+    generateResponse(res, 400, false, err.message || "Failed to fetch stats");
   }
 };

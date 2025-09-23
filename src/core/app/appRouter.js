@@ -24,7 +24,7 @@ import accountRoutes from '../../entities/lender/account settings/account.routes
 import onboardingRoutes from '../../entities/lender/Onboard/onboard.routes.js'
 import paymentRoutes from '../../entities/Payment/Booking/payment.routes.js'
 import subscriptionRoutes from '../../entities/subscription/subscription.routes.js'
-
+import payOutRoutes from '../../entities/lender/payOut/payOuts.routes.js'
 
 const router = express.Router();
 
@@ -40,6 +40,7 @@ router.use('/v1/payment', paymentRoutes);
 router.use('/v1/lender/account', accountRoutes);
 
 router.use('/v1/message', messageRoutes)
+router.use('/v1/payout',payOutRoutes)
 
 
 // admin routes
