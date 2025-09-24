@@ -182,7 +182,12 @@ const UserSchema = new mongoose.Schema(
     reason: { type: String, default: '' },
     deactivationReason: { type: String, default: '' },
     deactivationFeedback: { type: String, default: '' },
-    deactivated: { type: Boolean, default: false }
+    deactivated: { type: Boolean, default: false },
+
+    notificationPreferences: {
+      receiveEmailAlertsForNewOrders: { type: Boolean, default: false },
+      sendRemindersForReturnDeadlines: { type: Boolean, default: false }
+    },
   },
   { timestamps: true }
 );
