@@ -7,9 +7,9 @@ import {
   verifyCode,
   resetPassword,
   logoutUser,
-  updatePassword
+  changePassword
 } from './auth.controller.js';
-import { userAdminLenderMiddleware } from '../../core/middlewares/authMiddleware.js';
+import { userAdminLenderMiddleware, verifyToken } from '../../core/middlewares/authMiddleware.js';
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ router.post('/forget-password', forgetPassword);
 router.post('/verify-code', verifyCode);
 router.post('/reset-password', resetPassword);
 router.post('/logout', userAdminLenderMiddleware, logoutUser);
-router.put('/update-password/:id', updatePassword);
+router.post('/change-password',verifyToken, changePassword);
 
 
 export default router;
