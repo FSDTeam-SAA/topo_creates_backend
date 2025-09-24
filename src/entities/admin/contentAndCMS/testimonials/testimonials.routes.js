@@ -5,11 +5,17 @@ import {
   getTestimonialById,
   updateTestimonial,
   deleteTestimonial,
+  getActiveCounts,
 } from "./testimonials.controller.js";
 import { adminMiddleware, verifyToken } from "../../../../core/middlewares/authMiddleware.js";
 
 
 const router = express.Router();
+
+
+router
+  .route("/active-counts")
+  .get(getActiveCounts);
 
 
 router
