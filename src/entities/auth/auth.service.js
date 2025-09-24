@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { refreshTokenSecrete, emailExpires } from '../../core/config/config.js';
 import sendEmail from '../../lib/sendEmail.js';
 import verificationCodeTemplate from '../../lib/emailTemplates.js';
+import mongoose from 'mongoose';
 
 
 export const registerUserService = async ({
@@ -137,19 +138,22 @@ export const resetPasswordService = async ({ email, newPassword }) => {
 };
 
 
-export const updatePasswordService = async ({ id, password, newPassword }) => {
-  if (!id || !password || !newPassword) throw new Error('Email, current password, and new password are required');
+export const changePasswordService = async ({ userId, oldPassword, newPassword }) => {
+  if (!userId || !oldPassword || !newPassword) throw new Error('User id, old password and new password are required');
 
-  const user = await User.findById(id).select('+password');
+  const user = await User.findById(userId);
   if (!user) throw new Error('User not found');
 
-  const isMatch = await user.comparePassword(user._id, password);
-  if (!isMatch) throw new Error('Incorrect current password');
+  const isMatch = await user.comparePassword(userId, oldPassword);
+  if (!isMatch) throw new Error('Invalid old password');
 
   user.password = newPassword;
-  await user.save(); 
+  await user.save();
 
-  return { message: 'Password updated successfully' };
+  return;
 };
+
+
+
 
 
