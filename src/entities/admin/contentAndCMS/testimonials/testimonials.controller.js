@@ -94,3 +94,20 @@ export const deleteTestimonial = async (req, res, next) => {
     next(error);
   }
 };
+
+
+export const getActiveCounts = async (req, res, next) => {
+  try {
+    const result = await testimonialService.getActiveCounts();
+    return generateResponse(
+      res,
+      200,
+      true,
+      "Active counts fetched successfully",
+      result
+    );
+  } catch (error) {
+    console.error("Error fetching active counts:", error);
+    next(error);
+  }
+};
