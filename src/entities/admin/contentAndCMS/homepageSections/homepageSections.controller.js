@@ -5,9 +5,9 @@ import * as homepageSectionService from "../homepageSections/homepageSections.se
 
 export const createHomepageSection = async (req, res, next) => {
   try {
-    const { sectionName, content } = req.body;
+    const { sectionName, content, status } = req.body;
 
-    if (!sectionName || !content) {
+    if (!sectionName || !content || !status) {
       return generateResponse(res, 400, false, "All fields are required");
     }
 
@@ -25,7 +25,7 @@ export const createHomepageSection = async (req, res, next) => {
       }
     }
 
-    const sectionData = { sectionName, content, image };
+    const sectionData = { sectionName, content, image, status };
 
     const newSection = await homepageSectionService.createHomepageSection(sectionData);
     return generateResponse(res, 201, true, "Homepage section created successfully", newSection);
@@ -38,8 +38,15 @@ export const createHomepageSection = async (req, res, next) => {
 
 export const getAllHomepageSections = async (req, res, next) => {
   try {
-    const sections = await homepageSectionService.getAllHomepageSections();
-    return generateResponse(res, 200, true, "Homepage sections fetched successfully", sections);
+    const { status } = req.query; 
+    const sections = await homepageSectionService.getAllHomepageSections(status);
+    return generateResponse(
+      res,
+      200,
+      true,
+      "Homepage sections fetched successfully",
+      sections
+    );
   } catch (error) {
     console.error("Error fetching homepage sections:", error);
     next(error);

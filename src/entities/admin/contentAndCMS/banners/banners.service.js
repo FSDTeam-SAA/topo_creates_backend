@@ -7,9 +7,14 @@ export const createBanner = async (data) => {
 };
 
 
-export const getAllBanners = async () => {
-  return await Banner.find().sort({ createdAt: -1 });
+export const getAllBanners = async (status) => {
+  const filter = {};
+  if (status) {
+    filter.status = status; 
+  }
+  return await Banner.find(filter).sort({ createdAt: -1 });
 };
+
 
 
 export const getBannerById = async (id) => {

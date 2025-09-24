@@ -4,13 +4,13 @@ import * as termsService from "./termsAndConditions.service.js";
 
 export const createTerms = async (req, res, next) => {
   try {
-    const { name, details } = req.body;
+    const { name, details, status } = req.body;
 
-    if (!name || !details) {
-      return generateResponse(res, 400, false, "Name and details are required");
+    if (!name || !details || !status) {
+      return generateResponse(res, 400, false, "Name, details, and status are required");
     }
 
-    const newTerms = await termsService.createTerms({ name, details });
+    const newTerms = await termsService.createTerms({ name, details, status });
 
     return generateResponse(res, 201, true, "Terms and conditions created successfully", newTerms);
   } catch (error) {
@@ -22,8 +22,15 @@ export const createTerms = async (req, res, next) => {
 
 export const getAllTerms = async (req, res, next) => {
   try {
-    const termsList = await termsService.getAllTerms();
-    return generateResponse(res, 200, true, "Terms and conditions fetched successfully", termsList);
+    const { status } = req.query; 
+    const termsList = await termsService.getAllTerms(status);
+    return generateResponse(
+      res,
+      200,
+      true,
+      "Terms and conditions fetched successfully",
+      termsList
+    );
   } catch (error) {
     console.error("Error fetching terms and conditions:", error);
     next(error);

@@ -14,7 +14,7 @@ const termsAndConditionsSchema = new Schema(
         },
         status: {
             type: String,
-            enum: ['active', 'paused'],
+            enum: ['active', 'inactive','draft'],
             default: 'active',
         }
     },

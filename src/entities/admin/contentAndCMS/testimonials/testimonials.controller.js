@@ -4,16 +4,17 @@ import * as testimonialService from "./testimonials.service.js";
 
 export const createTestimonial = async (req, res, next) => {
   try {
-    const { customerName, content, rating } = req.body;
+    const { customerName, content, rating, status } = req.body;
 
-    if (!customerName || !content || !rating) {
+    if (!customerName || !content || !rating || !status) {
       return generateResponse(res, 400, false, "All required fields must be provided.");
     }
   
     const newTestimonial = await testimonialService.createTestimonial({
       customerName,
       content,
-      rating
+      rating,
+      status
     });
 
     return generateResponse(res, 201, true, "Testimonial created successfully", newTestimonial);
@@ -26,8 +27,15 @@ export const createTestimonial = async (req, res, next) => {
 
 export const getAllTestimonials = async (req, res, next) => {
   try {
-    const testimonials = await testimonialService.getAllTestimonials();
-    return generateResponse(res, 200, true, "Testimonials fetched successfully", testimonials);
+    const { status } = req.query; 
+    const testimonials = await testimonialService.getAllTestimonials(status);
+    return generateResponse(
+      res,
+      200,
+      true,
+      "Testimonials fetched successfully",
+      testimonials
+    );
   } catch (error) {
     console.error("Error fetching testimonials:", error);
     next(error);
