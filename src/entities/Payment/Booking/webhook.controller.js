@@ -37,24 +37,56 @@ export const handleBookingPaymentEvents = async (event) => {
           `✅ Checkout session completed: Payment ${paymentId}, Booking ${bookingId}`
         );
 
-        // 🔔 Send email alerts to admins who opted in
+        // Send email alerts to admins who opted in
         const adminsToNotify = await User.find({
           role: "ADMIN",
-          "notificationPreferences.receiveEmailAlertsForNewOrders": true,
-        }).select("email lastName");
+          "notificationPreferences.receiveEmailAlertsForNewOrders": { $exists: true, $eq: true }
+        }).select("email lastName notificationPreferences");
 
-        if (adminsToNotify.length > 0) {
-          const subject = "📦 New Order Received";
-          const html = `
-            <h2>New Order Notification</h2>
-            <p>A new order has been placed and payment completed successfully.</p>
-            <p><strong>Booking ID:</strong> ${bookingId}</p>
-            <p><strong>Customer:</strong> ${
-              booking?.userId?.lastName || "Unknown"
-            }</p>
-            <p><strong>Payment ID:</strong> ${paymentId}</p>
-            <p>Please log in to the admin panel for more details.</p>
-          `;
+
+
+      if (adminsToNotify.length > 0) {
+        const subject = "📦 New Order Received";
+
+        const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
+          <!-- Header -->
+          <div style="background-color: #4CAF50; color: white; padding: 16px; text-align: center;">
+            <h2 style="margin: 0;">New Order Notification</h2>
+          </div>
+
+          <!-- Body -->
+          <div style="padding: 20px; color: #333; line-height: 1.6;">
+            <p style="font-size: 16px;">Hello Admin,</p>
+            <p style="font-size: 15px;">A new order has been placed and payment completed successfully. 🎉</p>
+
+            <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9;"><strong>Booking ID</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${bookingId}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9;"><strong>Customer Name</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${booking?.customer?.lastName || "Unknown"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9;"><strong>Customer Email</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${booking?.customer?.email || "Unknown"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9;"><strong>Payment ID</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${paymentId}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #f4f4f4; padding: 12px; text-align: center; font-size: 12px; color: #666;">
+            <p style="margin: 0;">This is an automated notification. Please do not reply.</p>
+          </div>
+        </div>
+        `;
+
 
           // Send email to each admin
           await Promise.all(
