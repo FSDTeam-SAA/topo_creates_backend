@@ -18,6 +18,7 @@ import { globalLimiter } from './lib/limit.js';
 import appRouter from './core/app/appRouter.js';
 import { stripeWebhookHandler } from './entities/webhook.js';
 import { connectedAccountWebhookHandler } from './entities/webhookAccounts.js';
+import { startReminderJob } from './lib/reminderJob.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,5 +90,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 logger.info('Middleware stack initialized');
+
+startReminderJob();
 
 export { server, app };

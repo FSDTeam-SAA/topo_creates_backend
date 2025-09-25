@@ -26,9 +26,12 @@ export const handleBookingPaymentEvents = async (event) => {
         await payment.save();
 
         // Update Booking
-        const booking = await Booking.findById(bookingId).populate("userId"); 
-        if (booking) booking.paymentStatus = "Paid";
-        await booking.save();
+        // Update Booking (atomic update instead of save())
+          const booking = await Booking.findByIdAndUpdate(
+            bookingId,
+            { paymentStatus: "Paid" },
+            { new: true }
+          ).populate("customer");
 
         console.log(
           `✅ Checkout session completed: Payment ${paymentId}, Booking ${bookingId}`
