@@ -5,8 +5,9 @@ import sendEmail from "./sendEmail.js";
 
 
 export const startReminderJob = () => {
-  // Runs every day at 9 AM
-  cron.schedule("0 9 * * *", async () => {
+  // Runs every day at 09:00 AM
+  // format : min hour day month day-of-week
+  cron.schedule("00 09 * * *", async () => {
     try {
       console.log("[ReminderJob] Running...");
 
@@ -45,11 +46,23 @@ export const startReminderJob = () => {
         }
 
         const html = `
-          <p>Hi ${booking.customer.fullName || "Customer"},</p>
-          <p>This is a friendly reminder that your rental for 
-          <b>${booking.dressId}</b> ends on <b>${booking.rentalEndDate.toDateString()}</b>.</p>
-          <p>Please make sure to return the dress on time to avoid late fees.</p>
-          <p>Thank you for using our service!</p>
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e2e2; border-radius: 10px; background-color: #fdfdfd;">
+            <h2 style="color: #4CAF50; text-align: center;">🕒 Rental Reminder</h2>
+            <p>Hi <strong>${booking.customer.fullName || "Customer"}</strong>,</p>
+            <p>This is a friendly reminder that your rental for:</p>
+            <p style="text-align: center; font-size: 16px; font-weight: bold; color: #555;">
+            ${booking.dressId}
+            </p>
+            <p>is ending on:</p>
+            <p style="text-align: center; font-size: 16px; font-weight: bold; color: #d9534f;">
+            ${booking.rentalEndDate.toDateString()}
+            </p>
+            <p>Please make sure to return the dress on time to avoid any late fees.</p>
+            <p style="margin-top: 20px; font-size: 12px; color: #888; text-align: center;">
+            Thank you for using our service!<br/>
+            <em>Muse Gala platform team</em>
+            </p>
+        </div>
         `;
 
         await sendEmail({
