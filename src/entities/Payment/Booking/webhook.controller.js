@@ -41,7 +41,7 @@ export const handleBookingPaymentEvents = async (event) => {
         const adminsToNotify = await User.find({
           role: "ADMIN",
           "notificationPreferences.receiveEmailAlertsForNewOrders": true,
-        }).select("email fullName");
+        }).select("email lastName");
 
         if (adminsToNotify.length > 0) {
           const subject = "📦 New Order Received";
@@ -50,7 +50,7 @@ export const handleBookingPaymentEvents = async (event) => {
             <p>A new order has been placed and payment completed successfully.</p>
             <p><strong>Booking ID:</strong> ${bookingId}</p>
             <p><strong>Customer:</strong> ${
-              booking?.userId?.fullName || "Unknown"
+              booking?.userId?.lastName || "Unknown"
             }</p>
             <p><strong>Payment ID:</strong> ${paymentId}</p>
             <p>Please log in to the admin panel for more details.</p>
