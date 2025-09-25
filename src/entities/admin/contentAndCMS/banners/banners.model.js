@@ -16,7 +16,7 @@ const bannerSchema = new Schema(
         image: [FileSchema],
         status: {
             type: String,
-            enum: ['active', 'draft'],
+            enum: ['active', 'inactive','draft'],
             default: 'active',
         }
     },

@@ -21,8 +21,8 @@ const homepageSectionSchema = new Schema(
         image: [FileSchema],
         status: {
             type: String,
-            enum: ['published', 'draft'],
-            default: 'published',
+            enum: ['active', 'inactive','draft'],
+            default: 'active',
         }
     },
     {

@@ -7,7 +7,7 @@ import {
   forgetPasswordService,
   verifyCodeService,
   resetPasswordService,
-  updatePasswordService,
+  changePasswordService,
 
 } from './auth.service.js';
 
@@ -182,35 +182,28 @@ export const resetPassword = async (req, res, next) => {
 };
 
 
-export const updatePassword = async (req, res, next) => {
-   // Extracted from token by auth middleware
-
-  const {password, newPassword } = req.body;
-  const id =req.params.id
-  
+export const changePassword = async (req, res, next) => {
+  const { oldPassword, newPassword } = req.body;
+  const userId = req.user._id;
   try {
-    if (!password || !newPassword) {
-      return generateResponse(res, 400, false, 'Current and new passwords are required', null);
-    }
-
-    const data = await updatePasswordService({ id
-      , password, newPassword });
-
-    generateResponse(res, 200, true, 'Password updated successfully', data);
+    await changePasswordService({ userId, oldPassword, newPassword });
+    generateResponse(res, 200, true, 'Password changed successfully', null);
   }
 
   catch (error) {
-    if (error.message === 'User not found') {
-      generateResponse(res, 404, false, 'User not found', null);
+    if (error.message === 'Old and new passwords are required') {
+      generateResponse(res, 400, false, 'Old and new passwords are required', null);
     }
 
-    else if (error.message === 'Incorrect current password') {
-      generateResponse(res, 403, false, 'Incorrect current password', null);
+    else if (error.message === 'Password does not match') {
+      generateResponse(res, 400, false, 'Password does not match', null);
     }
 
     else {
-      next(error);
+      next(error)
     }
   }
 };
+
+
 

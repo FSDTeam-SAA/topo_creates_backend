@@ -5,9 +5,9 @@ import * as bannerService from './banners.service.js';
 
 export const createBanner = async (req, res, next) => {
   try {
-    const { title } = req.body;
+    const { title, status } = req.body;
 
-    if (!title) {
+    if (!title || !status) {
       return generateResponse(res, 400, false, 'Title and status are required');
     }
 
@@ -25,7 +25,7 @@ export const createBanner = async (req, res, next) => {
       }
     }
 
-    const bannerData = { title, image };
+    const bannerData = { title, status, image };
 
     const newBanner = await bannerService.createBanner(bannerData);
     return generateResponse(res, 201, true, 'Banner created successfully', newBanner);
@@ -38,7 +38,8 @@ export const createBanner = async (req, res, next) => {
 
 export const getAllBanners = async (req, res, next) => {
   try {
-    const banners = await bannerService.getAllBanners();
+    const { status } = req.query; 
+    const banners = await bannerService.getAllBanners(status);
     return generateResponse(res, 200, true, 'Banners fetched successfully', banners);
   } catch (error) {
     console.error('Error fetching banners:', error);
