@@ -25,25 +25,28 @@ export const createBookingController = async (req, res) => {
 
 // GET ALL
 export const getAllBookingsController = async (req, res) => {
-  try {
-    const { page = 1, limit = 10, search, date, lenderId, dressId, customerId } = req.query;
-    const role = req.user.role;
-    const userId = req.user.id;
+  const { page = 1, limit = 10, search, date, lender, dressId, customer } = req.query;
+  const role = req.user.role;
+  const userId = req.user.id;
 
-    const { bookings, paginationInfo } = await getAllBookingsService({
-      page,
-      limit,
-      query: { search, date, lenderId, dressId, customerId },
-      role,
-      userId,
-    });
+  // Build query object with only defined values
+  const queryObj = {};
+  if (search) queryObj.search = search;
+  if (date) queryObj.date = date;
+  if (dressId) queryObj.dressId = dressId;
+  if (lender) queryObj.lender = lender;
+  if (customer) queryObj.customer = customer;
 
-    generateResponse(res, 200, true, "Bookings fetched successfully", { bookings, paginationInfo });
-  } catch (err) {
-    generateResponse(res, 500, false, err.message);
-  }
+  const { bookings, paginationInfo } = await getAllBookingsService({
+    page: Number(page),
+    limit: Number(limit),
+    query: queryObj,
+    role,
+    userId,
+  });
+
+  generateResponse(res, 200, true, "Bookings fetched successfully", { bookings, paginationInfo });
 };
-
 
 
 // GET BY BOOKING ID

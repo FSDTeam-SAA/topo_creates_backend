@@ -100,20 +100,25 @@ await listing.save();
 
 // GET ALL BOOKINGS
 export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, role, userId }) => {
-  let filterQuery = { ...query };
+  // 1. Build filter object with only defined fields
+  const filterQuery = {};
 
-  if (role === "USER") {
-    filterQuery.customerId = userId; // user only sees own bookings
-  } else if (role === "LENDER") {
-    filterQuery.lenderId = userId; // lender only sees own bookings
-  } 
-  // Admin sees all, can use all filters
+  if (query.search) filterQuery.search = query.search;
+  if (query.date) filterQuery.date = query.date;
+  if (query.dressId) filterQuery.dressId = query.dressId;
+  if (query.customer) filterQuery.customer = query.customer;
+  if (query.lender) filterQuery.lender = query.lender;
 
-  const filter = createFilter(filterQuery, role); // pass role to filter if needed
+  // 2. Apply role-based restrictions
+  if (role === "USER") filterQuery.customer = userId;
+  else if (role === "LENDER") filterQuery.lender = userId;
+  // ADMIN sees all, no restriction
 
-  const totalBookings = await Booking.countDocuments(filter);
+  // 3. Count total for pagination
+  const totalBookings = await Booking.countDocuments(filterQuery);
 
-  const bookings = await Booking.find(filter)
+  // 4. Fetch bookings with pagination and populated fields
+  const bookings = await Booking.find(filterQuery)
     .populate([
       { path: "customer", select: "-password -refreshToken" },
       { path: "lender", select: "-password -refreshToken" },
@@ -123,13 +128,11 @@ export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, 
     .skip((page - 1) * limit)
     .limit(limit);
 
+  // 5. Pagination info
   const paginationInfo = createPaginationInfo(page, limit, totalBookings);
 
   return { bookings, paginationInfo };
 };
-
-
-
 
 // Get booking by ID with role check
 export const getBookingByIdService = async ({ bookingId, userId, role }) => {
