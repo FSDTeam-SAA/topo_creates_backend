@@ -50,7 +50,7 @@ const DisputeSchema = new Schema({
   isEscalated: { type: Boolean, default: false },
   escalationReason: { type: String },
   escalationDescription: { type: String },
-  escalationPriority: { type: String, enum: ['Standard', 'High'] },
+  escalationPriority: { type: String, enum: ['Low', 'Medium', 'High'] },
   escalationEvidence: [FileSchema],
   escalationConfirmed: { type: Boolean, default: false },
   escalationScheduleCall: { type: Boolean, default: false },
