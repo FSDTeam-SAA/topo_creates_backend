@@ -1,79 +1,79 @@
-import { Types } from "mongoose";
-import { Booking } from "../booking/booking.model.js";
-import Message from "./message.model.js";
 import { io } from "../../app.js";
+import { Booking } from "../booking/booking.model.js";
+import { ChatRoom } from "./chatRoom.model.js";
+import { Message } from "./message.model.js";
 
 
-export const sendMessageService = async (booking,message) => {
-    //console.log("Booking ID:", message);
-    
-    const bookingDoc = await Booking.findById({_id: new Types.ObjectId(booking)});
-    if (!bookingDoc) {
-        throw new Error("Booking not found");
-    }
+export const sendMessageService = async (bookingId, messageData) => {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new Error("Booking not found");
 
-    //console.log("Booking Document:", bookingDoc);
+  // Check authorization
+  if (
+    booking.customer.toString() !== messageData.sender.toString() &&
+    booking.lender.toString() !== messageData.sender.toString()
+  ) {
+    // allow admin as well
+    throw new Error("You are not authorized to send a message for this booking");
+  }
 
-    if(bookingDoc.customer.toString() !== message.sender.toString() && bookingDoc.lender.toString() !== message.sender.toString()){
-        throw new Error("You are not authorized to send a message for this booking");
-    }
-    let newMessage = await Message.findOne({ bookingId:booking });
+  // Ensure chat room exists
+  let chatRoom = await ChatRoom.findOne({ bookingId });
+  if (!chatRoom) {
+    chatRoom = await ChatRoom.create({
+      bookingId,
+      participants: [booking.customer, booking.lender],
+      createdBy: booking.customer,
+    });
+  }
 
-    if (!newMessage) {
-         newMessage = new Message({
-            bookingId: booking,
-            messages: []
-        });
-        await newMessage.save();
-    }
-    else
-    {
-        const updateMessage = await Message.findByIdAndUpdate(
-            newMessage._id,
-            { $push: { messages: message } },
-            { new: true, upsert: true }
-        );
+  // Save message
+  const newMessage = await Message.create({
+    chatRoom: chatRoom._id,
+    sender: messageData.sender,
+    message: messageData.message,
+  });
 
-        // socket.io emit
-        io.to(`room-${booking}`).emit("message", {
-            message: message,
-            sender: message.sender,
-            bookingId: booking,
-            createdAt: new Date(),
-        });
-        
-        return updateMessage;
-    }
+  // Update room metadata
+  chatRoom.lastMessage = newMessage.message;
+  chatRoom.lastMessageAt = new Date();
+  await chatRoom.save();
+
+  // Emit via socket.io
+  io.to(`room-${bookingId}`).emit("message", {
+    ...newMessage.toObject(),
+    bookingId,
+  });
+
+  return newMessage;
 };
 
 
-export const getMessagesByBookingIdService = async (bookingId,userId) => {
+export const getMessagesByBookingIdService = async (bookingId, userId) => {
+  const chatRoom = await ChatRoom.findOne({ bookingId });
+  if (!chatRoom) throw new Error("ChatRoom not found");
 
-    let messages = await Message.findOne({ bookingId: bookingId })
-    .populate("messages.sender", "firstName lastName email role")
+  const messages = await Message.find({ chatRoom: chatRoom._id })
+    .populate("sender", "firstName lastName email role")
+    .sort({ createdAt: 1 });
 
-    let updated = false;
-    messages.messages.forEach(msg => {
-      if (!msg.read && msg.sender._id.toString() !== userId.toString()) {
-        msg.read = true;
-        updated = true;
-      }
-    });
+  // mark as read
+  for (const msg of messages) {
+    if (!msg.readBy.includes(userId)) {
+      msg.readBy.push(userId);
+      await msg.save();
+    }
+  }
 
-    if (updated) await messages.save();
-  
-    return {
-        messages,
-    };
+  return { chatRoom, messages };
 };
 
 
 export const getAllConversationsService = async () => {
-    const messages = await Message.find({})
-      .populate("bookingId")
-      .populate("messages.sender", "firstName lastName email role")
-      .sort({ createdAt: -1 })
-      .lean();
-      
-    return messages;
-}
+  const chatRooms = await ChatRoom.find({})
+    .populate("participants", "firstName lastName email role")
+    .sort({ lastMessageAt: -1 })
+    .lean();
+
+  return chatRooms;
+};

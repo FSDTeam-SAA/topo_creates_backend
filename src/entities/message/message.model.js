@@ -2,37 +2,12 @@ import mongoose, { Schema } from "mongoose";
 
 const messageSchema = new Schema(
   {
-    bookingId: {
-      type: Schema.Types.ObjectId,
-      ref: "Booking",
-      required: true
-    },
-    messages:[
-        {
-            message: {
-                type: String,
-                required: true
-            },
-            sender: {
-                type: Schema.Types.ObjectId,
-                ref: "User",
-                required: true
-            },
-            read: {
-                type: Boolean,
-                default: false
-            },
-            createdAt: {
-                type: Date,
-                default: Date.now
-            }
-        }
-    ]
+    chatRoom: { type: Schema.Types.ObjectId, ref: "ChatRoom", required: true },
+    sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    message: { type: String, required: true },
+    readBy: [{ type: Schema.Types.ObjectId, ref: "User" }], 
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
-const Message = mongoose.model("Message", messageSchema);
-export default Message;
+export const Message = mongoose.model("Message", messageSchema);
