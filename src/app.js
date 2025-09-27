@@ -77,19 +77,28 @@ export const io = new Server(server, {
 });
 
 
-io.on('connection', (socket) => {
-  console.log('New client connected', socket.id);
+io.on("connection", (socket) => {
+  console.log("New client connected", socket.id);
 
-  socket.on('joinRoom', (room) => {
-    socket.join(`room-${room}`);
-    console.log(`Client ${room} joined room: ${room}`);
+  socket.on("registerUser", (userId) => {
+    socket.join(`user-${userId}`);
+    console.log(`User ${userId} joined personal room`);
   });
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
+  socket.on("joinRoom", (room) => {
+    socket.join(`room-${room}`);
+    console.log(`Client joined chat room: ${room}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected");
   });
 });
 
+
+// registerUser → global communication || for personal notifications (new chat, new message alert).
+
+// joinRoom → scoped communication || for live chat sessions (realtime messages inside the room).
 
 
 // Error handling

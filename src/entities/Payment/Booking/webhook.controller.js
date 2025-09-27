@@ -1,6 +1,7 @@
 import sendEmail from "../../../lib/sendEmail.js";
 import User from "../../auth/auth.model.js";
 import { Booking } from "../../booking/booking.model.js";
+import { ChatRoom } from "../../message/chatRoom.model.js";
 import Payment from "./payment.model.js";
 
 
@@ -34,8 +35,21 @@ export const handleBookingPaymentEvents = async (event) => {
           ).populate("customer");
 
         console.log(
-          `✅ Checkout session completed: Payment ${paymentId}, Booking ${bookingId}`
+          `Checkout session completed: Payment ${paymentId}, Booking ${bookingId}`
         );
+
+        // Create ChatRoom if not exists
+        let chatRoom = await ChatRoom.findOne({ bookingId });
+        if (!chatRoom) {
+          chatRoom = await ChatRoom.create({
+            bookingId,
+            participants: [booking.customer._id], 
+            createdBy: booking.customer._id,
+          });
+          console.log(`ChatRoom created for booking ${bookingId}`);
+        } else {
+          console.log(`ChatRoom already exists for booking ${bookingId}`);
+        }
 
         // Send email alerts to admins who opted in
         const adminsToNotify = await User.find({
