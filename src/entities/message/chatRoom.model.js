@@ -11,4 +11,6 @@ const chatRoomSchema = new Schema(
   { timestamps: true }
 );
 
+chatRoomSchema.index({ bookingId: 1 }, { unique: true });
+
 export const ChatRoom = mongoose.model("ChatRoom", chatRoomSchema);

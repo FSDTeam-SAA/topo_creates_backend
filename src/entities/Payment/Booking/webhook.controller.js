@@ -38,18 +38,35 @@ export const handleBookingPaymentEvents = async (event) => {
           `Checkout session completed: Payment ${paymentId}, Booking ${bookingId}`
         );
 
-        // Create ChatRoom if not exists
+
+        // Create ChatRoom if not exists, include both customer and lender
         let chatRoom = await ChatRoom.findOne({ bookingId });
         if (!chatRoom) {
           chatRoom = await ChatRoom.create({
             bookingId,
-            participants: [booking.customer._id], 
+            participants: [booking.customer._id, booking.lender._id],
             createdBy: booking.customer._id,
           });
-          console.log(`ChatRoom created for booking ${bookingId}`);
+          console.log(
+            `ChatRoom created for booking ${bookingId} with participants [${booking.customer._id}, ${booking.lender._id}]`
+          );
         } else {
-          console.log(`ChatRoom already exists for booking ${bookingId}`);
+          // ensure both are in participants even if room already exists
+          const updated = await ChatRoom.findByIdAndUpdate(
+            chatRoom._id,
+            {
+              $addToSet: {
+                participants: { $each: [booking.customer._id, booking.lender._id] },
+              },
+            },
+            { new: true }
+          );
+          chatRoom = updated;
+          console.log(
+            `ChatRoom already exists, ensured participants [${booking.customer._id}, ${booking.lender._id}]`
+          );
         }
+
 
         // Send email alerts to admins who opted in
         const adminsToNotify = await User.find({
@@ -159,7 +176,7 @@ export const handleBookingPaymentEvents = async (event) => {
 
         const payment = await Payment.findById(paymentId);
         if (!payment) return;
-        if (payment.status !== "Pending") return; // already handled
+        if (payment.status !== "Pending") return; 
 
         payment.status = "Expired";
         await payment.save();
