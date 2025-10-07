@@ -39,7 +39,7 @@ export const getAllChatByRoomIdService = async (roomId, page, limit) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate("sender", "firstName lastName profileImage"),
+      .populate("sender", "firstName lastName profileImage role"),
     Message.countDocuments({ chatRoom: roomId }),
   ]);
 
@@ -147,7 +147,7 @@ export const getMessagesByRoomService = async (roomId, page, limit) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate("sender", "firstName lastName profileImage"),
+      .populate("sender", "firstName lastName profileImage role"),
     Message.countDocuments({ chatRoom: roomId }),
   ]);
 
