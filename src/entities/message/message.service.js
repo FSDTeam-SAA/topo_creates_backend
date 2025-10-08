@@ -144,7 +144,7 @@ export const getMessagesByRoomService = async (roomId, page, limit) => {
 
   const [messages, total] = await Promise.all([
     Message.find({ chatRoom: roomId })
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: 1 })
       .skip(skip)
       .limit(parseInt(limit))
       .populate("sender", "firstName lastName profileImage role"),
