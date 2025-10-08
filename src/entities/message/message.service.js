@@ -127,13 +127,16 @@ export const sendMessageService = async (roomId, { sender, message, files }) => 
     attachments,
   });
 
+  const newMessagePopulated = await newMessage
+    .populate("sender", "firstName lastName profileImage role")
+
   // Update chatRoom metadata
   chatRoom.lastMessage = message || (attachments.length ? "📎 Attachment" : "");
   chatRoom.lastMessageAt = new Date();
   await chatRoom.save();
 
   // Emit via socket
-  io.to(`room-${chatRoom._id}`).emit("message:new", newMessage);
+  io.to(`room-${chatRoom._id}`).emit("message:new", newMessagePopulated);
 
   return newMessage;
 };
