@@ -25,6 +25,7 @@ import paymentRoutes from '../../entities/Payment/Booking/payment.routes.js'
 import subscriptionRoutes from '../../entities/subscription/subscription.routes.js'
 import payOutRoutes from '../../entities/lender/payOut/payOuts.routes.js'
 import supportRoutes from '../../entities/support/support.routes.js'
+import adminDispute from '../../entities/dispute/admin/dispute.routes.js';
 const router = express.Router();
 
 
@@ -66,7 +67,7 @@ router.use('/v1/lender',onboardingRoutes)
 // dispute routes
 router.use('/v1/customer/disputes', customerDispute);
 router.use('/v1/lender/disputes', lenderDispute); 
-
+router.use('/v1/admin/disputes', adminDispute); 
 
 // bookings routes
 router.use('/v1/customer/bookings', customerBookingRoutes);
