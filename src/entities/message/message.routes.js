@@ -20,9 +20,9 @@ const router = express.Router();
 
 router.get("/chatrooms", verifyToken, getUserChatRooms);
 
-router.get("/chatrooms/admin/:roomId", verifyToken, adminMiddleware, getAllChatByRoomId);
-
 router.get("/chatrooms/admin/all", verifyToken, adminMiddleware, getAllChatRoomsAdmin);
+
+router.get("/chatrooms/admin/:roomId", verifyToken, adminMiddleware, getAllChatByRoomId);
 
 
 /* ---------------- MESSAGE ROUTES ---------------- */
