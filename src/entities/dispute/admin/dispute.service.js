@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Dispute } from "../dispute.model.js";
 
 
@@ -120,6 +121,54 @@ export const getAllDisputesService = async (page = 1, limit = 10, status, monthF
     page,
     pages: Math.ceil(total / limit),
   };
+};
+
+
+export const getDisputeByIdService = async (disputeId) => {
+  if (!mongoose.Types.ObjectId.isValid(disputeId)) {
+    const err = new Error("Invalid dispute ID");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const dispute = await Dispute.findById(disputeId)
+    .populate({
+      path: "booking",
+      select: "listing deliveryMethod deliveryStatus status orderDate customer lender",
+      populate: [
+        {
+          path: "listing",
+          select: "title dressId dressName brand media rentalPrice"
+        },
+        {
+          path: "customer",
+          select: "firstName lastName email profileImage"
+        },
+        {
+          path: "lender",
+          select: "firstName lastName email profileImage"
+        }
+      ]
+    })
+    .populate("createdBy", "firstName lastName email profileImage")
+    .lean();
+
+  if (!dispute) {
+    const err = new Error("Dispute not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Optional: compute resolution time if resolved
+  if (dispute.status === "Resolved" && Array.isArray(dispute.timeline)) {
+    const resolutionEntry = dispute.timeline.find(t => t.type === "resolution");
+    if (resolutionEntry && resolutionEntry.timestamp) {
+      const resolutionTimeMs = new Date(resolutionEntry.timestamp) - new Date(dispute.createdAt);
+      dispute.avgResolutionTime = `${(resolutionTimeMs / (1000 * 60 * 60)).toFixed(2)} hrs`;
+    }
+  }
+
+  return dispute;
 };
 
 

@@ -17,6 +17,23 @@ export const getAllDisputes = async (req, res, next) => {
 };
 
 
+export const getDisputeById = async (req, res, next) => {
+  try {
+    const { disputeId } = req.params;
+
+    if (!disputeId) {
+      return generateResponse(res, 400, false, "Dispute ID is required");
+    }
+
+    const dispute = await disputeService.getDisputeByIdService(disputeId);
+
+    return generateResponse(res, 200, true, "Dispute fetched successfully", dispute);
+  } catch (error) {
+    console.error("Error in getDisputeById:", error);
+    next(error);
+  }
+};
+
 
 export const responseToDispute = async (req, res, next) => {
   try {
