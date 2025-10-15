@@ -23,6 +23,7 @@ export const createDisputeByLenderService = async (lenderId, bookingId, disputeD
         role: "LENDER",
         message: `Issue reported: '${disputeData.issueType}'`,
         attachments: disputeData.evidence || [],
+        type: "submission"
       },
     ],
   });
@@ -137,22 +138,31 @@ export const getLenderDisputeByIdService = async (lenderId, disputeId) => {
     throw err;
   }
 
-  const dispute = await Dispute.findOne({ _id: disputeId, createdBy: lenderId })
+  const bookings = await Booking.find({ lender: lenderId }).select("_id").lean();
+  const bookingIds = bookings.map(b => b._id);
+
+  const dispute = await Dispute.findOne({
+    _id: disputeId,
+    $or: [
+      { createdBy: lenderId },
+      { booking: { $in: bookingIds } },
+    ],
+  })
     .populate({
       path: "booking",
       select: "listing customer deliveryMethod status orderDate",
       populate: [
         {
           path: "listing",
-          select: "dressId dressName brand media rentalPrice"
+          select: "dressId dressName brand media rentalPrice",
         },
         {
           path: "customer",
-          select: "firstName"
-        }
-      ]
+          select: "firstName lastName email profileImage",
+        },
+      ],
     })
-    .populate("createdBy", "fullName") 
+    .populate("createdBy", "fullName email profileImage")
     .lean();
 
   if (!dispute) {
@@ -236,10 +246,6 @@ export const escalateDisputeByLenderService = async (
 
   return dispute;
 };
-
-
-
-
 
 
 

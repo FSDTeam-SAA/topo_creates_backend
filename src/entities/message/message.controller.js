@@ -7,6 +7,7 @@ import {
   getUserChatRoomsService,
   getAllChatRoomsAdminService,
   getAllChatByRoomIdService,
+  updateChatRoomStatusService,
 } from "./message.service.js";
 import { generateResponse } from "../../lib/responseFormate.js";
 
@@ -139,5 +140,31 @@ export const markAsRead = async (req, res) => {
     generateResponse(res, 200, true, "Messages marked as read", updated);
   } catch (error) {
     generateResponse(res, 500, false, "Failed to mark messages as read", error.message);
+  }
+};
+
+
+export const updateChatRoomStatus = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const adminId = req.user._id;
+    const { status, reason } = req.body;
+
+    // validation
+    const validStatuses = ["active", "flagged", "closed"];
+    if (!status || !validStatuses.includes(status)) {
+      return generateResponse(
+        res,
+        400,
+        false,
+        "Invalid or missing status. Allowed: active, flagged, closed."
+      );
+    }
+
+    const result = await updateChatRoomStatusService(roomId, adminId, status, reason);
+
+    generateResponse(res, 200, true, `Chat room status changed to ${status}`, result);
+  } catch (error) {
+    generateResponse(res, 500, false, "Failed to update chat room status", error.message);
   }
 };
