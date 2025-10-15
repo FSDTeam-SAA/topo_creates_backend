@@ -96,6 +96,10 @@ export const sendMessageService = async (roomId, { sender, message, files }) => 
     throw new Error("You are not authorized to send a message in this room");
   }
 
+  if (chatRoom.status === "closed") {
+    throw new Error("This conversation has been closed by the admin. You cannot send new messages.");
+  }
+
   // Upload attachments
   let attachments = [];
   for (const file of files) {
@@ -209,6 +213,67 @@ export const markAsReadService = async (roomId, userId) => {
 };
 
 
+export const updateChatRoomStatusService = async (roomId, adminId, status, reason = "") => {
+  const chatRoom = await ChatRoom.findById(roomId);
+  if (!chatRoom) throw new Error("Chat room not found");
+
+  switch (status) {
+    case "flagged":
+      chatRoom.status = "flagged";
+      chatRoom.flagged = {
+        status: true,
+        reason,
+        flaggedBy: adminId,
+        flaggedAt: new Date(),
+      };
+      chatRoom.closedBy = null;
+      chatRoom.closedAt = null;
+      break;
+
+    case "closed":
+      chatRoom.status = "closed";
+      chatRoom.closedBy = adminId;
+      chatRoom.closedAt = new Date();
+      // keep flagged info if previously flagged, or reset if not
+      if (!chatRoom.flagged?.status) {
+        chatRoom.flagged = {
+          status: false,
+          reason: "",
+          flaggedBy: null,
+          flaggedAt: null,
+        };
+      }
+      break;
+
+    case "active":
+      chatRoom.status = "active";
+      chatRoom.flagged = {
+        status: false,
+        reason: "",
+        flaggedBy: null,
+        flaggedAt: null,
+      };
+      chatRoom.closedBy = null;
+      chatRoom.closedAt = null;
+      break;
+
+    default:
+      throw new Error("Invalid status value");
+  }
+
+  await chatRoom.save();
+
+  // Notify clients/admin dashboard in real time
+  io.to(`room-${chatRoom._id}`).emit("chatroom:status-updated", {
+    roomId: chatRoom._id,
+    status: chatRoom.status,
+    flagged: chatRoom.flagged,
+    closedBy: chatRoom.closedBy,
+    closedAt: chatRoom.closedAt,
+  });
+
+  return chatRoom;
+};
 
 
 

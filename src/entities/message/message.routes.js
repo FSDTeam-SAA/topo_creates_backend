@@ -8,6 +8,7 @@ import {
   editMessage,
   deleteMessage,
   markAsRead,
+  updateChatRoomStatus,
 } from "./message.controller.js";
 import { verifyToken, adminMiddleware } from "../../core/middlewares/authMiddleware.js";
 import { multerUpload } from "../../core/middlewares/multer.js";
@@ -23,6 +24,9 @@ router.get("/chatrooms", verifyToken, getUserChatRooms);
 router.get("/chatrooms/admin/all", verifyToken, adminMiddleware, getAllChatRoomsAdmin);
 
 router.get("/chatrooms/admin/:roomId", verifyToken, adminMiddleware, getAllChatByRoomId);
+
+router.put("/chatrooms/admin/:roomId/status", verifyToken, adminMiddleware, updateChatRoomStatus);
+
 
 
 /* ---------------- MESSAGE ROUTES ---------------- */
