@@ -1,7 +1,13 @@
+import mongoose from "mongoose";
 import User from "../../../auth/auth.model.js";
 import { Booking } from "../../../booking/booking.model.js";
 import listings from "../../../lender/Listings/listings.model.js";
+import Listing from "../../../lender/Listings/listings.model.js";
+import MasterDress from "./masterDressModel.js";
+import { createPaginationInfo } from "../../../../lib/pagination.js";
 
+
+ // get dress from listing 
 export const getApprovedDresses = async (filters,page, limit, skip) => {
   const query = { approvalStatus: 'approved' ,isActive: true};
  // Search filter
@@ -171,21 +177,82 @@ if (
 
 
 
+// updating the approval status and creating master dress to show in the main site
+export const adminUpdateDress = async (listingId, adminData = {}) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-export const adminUpdateDress = async (id, updateData) => {
-  const listing = await listings.findById(id);
-  if (!listing) throw new Error('Dress not found');
+  try {
+    const listing = await Listing.findById(listingId).session(session);
+    if (!listing) throw new Error("Listing not found");
 
-  
+    let masterDress = null;
 
-  const updated = await listings.findByIdAndUpdate(
-    id,
-    { ...updateData},
-    { new: true }
-  );
+    // 1️⃣ If status is being changed to "approved" and not already approved
+    if (adminData.approvalStatus === "approved" && listing.approvalStatus !== "approved") {
+      listing.approvalStatus = "approved";
+      listing.isActive = true;
 
-  return updated;
+      // Check for existing MasterDress
+      masterDress = await MasterDress.findOne({ dressName: listing.dressName }).session(session);
+
+      if (!masterDress) {
+        // Create new MasterDress
+        masterDress = new MasterDress({
+          dressName: listing.dressName,
+          listingIds: [listing._id.toString()],
+          lenderIds: [listing.lenderId],
+          sizes: [listing.size],
+          colors: listing.colour ? [listing.colour] : [],
+          occasions: listing.occasion || [],
+          media: listing.media || [],
+          thumbnail: listing.media?.[0] || null,
+          pickupOption: listing.pickupOption,
+          isActive: true,
+          basePrice: adminData.basePrice ?? null,
+          insuranceFee: adminData.insuranceFee ?? null,
+           rrpPrice: adminData.rrpPrice ?? null,
+          shippingDetails: {
+            isLocalPickup: listing.pickupOption === "Local" || listing.pickupOption === "Both",
+            isShippingAvailable: listing.pickupOption === "Australia-wide" || listing.pickupOption === "Both",
+            insuranceFee: adminData.insuranceFee ?? null,
+            flexibilityNotes: adminData.flexibilityNotes ?? "",
+          },
+        });
+      } else {
+        // Merge into existing MasterDress
+        masterDress.listingIds = Array.from(new Set([...masterDress.listingIds, listing._id.toString()]));
+        masterDress.lenderIds = Array.from(new Set([...masterDress.lenderIds, listing.lenderId]));
+        masterDress.sizes = Array.from(new Set([...masterDress.sizes, listing.size]));
+        if (listing.colour && !masterDress.colors.includes(listing.colour)) masterDress.colors.push(listing.colour);
+        if (listing.occasion && listing.occasion.length) masterDress.occasions = Array.from(new Set([...masterDress.occasions, ...listing.occasion]));
+        if (listing.media && listing.media.length) masterDress.media = Array.from(new Set([...masterDress.media, ...listing.media]));
+
+        // Admin fields
+        if (adminData.basePrice !== undefined) masterDress.basePrice = adminData.basePrice;
+        if (adminData.insuranceFee !== undefined) masterDress.shippingDetails.insuranceFee = adminData.insuranceFee;
+        if (adminData.flexibilityNotes) masterDress.shippingDetails.flexibilityNotes = adminData.flexibilityNotes;
+        if (adminData.thumbnail) masterDress.thumbnail = adminData.thumbnail;
+      }
+
+      await masterDress.save({ session });
+    }
+
+    // 2️⃣ Update listing fields dynamically
+    Object.assign(listing, adminData); // Spread all admin-provided fields
+    await listing.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return { listing, masterDress };
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    throw err;
+  }
 };
+
 
 
 
@@ -246,4 +313,80 @@ export const getDressById = async (listing) => {
       bookedDates: bookedRanges,
     },
   };
+};
+
+
+
+// update master dress fields
+
+export const updateMasterDress = async (masterDressId, updateData = {}) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const masterDress = await MasterDress.findOne({ masterDressId }).session(session);
+    if (!masterDress) throw new Error("MasterDress not found");
+
+    // Merge updateData dynamically
+    Object.assign(masterDress, updateData);
+
+    // Save in transaction
+    await masterDress.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return masterDress;
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    throw err;
+  }
+};
+
+// get all master dress 
+
+export const getAllMasterDresses = async (query) => {
+  const page = parseInt(query.page, 10) || 1;
+  const limit = parseInt(query.limit, 10) || 20;
+  const skip = (page - 1) * limit;
+
+  // Only active master dresses
+  const filter = { isActive: true };
+
+  // Optional search filter
+  if (query.search) {
+    filter.$or = [
+      { dressName: { $regex: query.search, $options: 'i' } },
+      { slug: { $regex: query.search, $options: 'i' } },
+    ];
+  }
+
+  const [data, totalData] = await Promise.all([
+    MasterDress.find(filter).skip(skip).limit(limit).lean(),
+    MasterDress.countDocuments(filter),
+  ]);
+
+  const pagination = createPaginationInfo(page, limit, totalData);
+
+  return { data, pagination };
+};
+
+
+// get master dress by id
+
+export const getMasterDressById = async (id) => {
+  // Try finding by _id first
+  let masterDress = await MasterDress.findById(id).lean();
+
+  // If not found, try masterDressId
+  if (!masterDress) {
+    masterDress = await MasterDress.findOne({ masterDressId: id }).lean();
+  }
+
+  if (!masterDress) {
+    throw new Error('Master Dress not found');
+  }
+
+  return masterDress;
 };

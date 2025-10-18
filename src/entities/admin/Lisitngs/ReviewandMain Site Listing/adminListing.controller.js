@@ -49,23 +49,26 @@ const {
 };
 
 export const adminUpdateAnyDress = async (req, res) => {
-  const dressId = req.params.id;
+  const listingId = req.params.id;
 
-   if (!dressId) {
-      return res.status(400).json({ status: false, message: "Dress ID is required" });
-    }
+  if (!listingId) {
+    return res.status(400).json({ status: false, message: "Listing ID is required" });
+  }
 
   try {
-    const updated = await listingService.adminUpdateDress(dressId, req.body);
+    // This will update listing fields and handle master dress creation/merge if approved
+    const { listing, masterDress } = await listingService.adminUpdateDress(listingId, req.body);
+
     return res.status(200).json({
       status: true,
       message: 'Dress updated successfully',
-      data: updated,
+      data: { listing, masterDress },
     });
   } catch (err) {
     generateResponse(res, 400, false, 'Failed to update dress', err.message);
   }
 };
+
 
 export const getApprovalStatsController = async (req, res) => {
   try {
@@ -93,5 +96,71 @@ export const getDressByIdController = async (req, res) => {
       message: "Server error",
       error: error.message,
     });
+  }
+};
+
+
+// update master dress
+export const adminUpdateMasterDress = async (req, res) => {
+  const { masterDressId } = req.params;
+  const updateData = req.body;
+
+  if (!masterDressId) {
+    return res.status(400).json({ status: false, message: "MasterDress ID is required" });
+  }
+
+  try {
+    const updateMasterDress = await listingService.updateMasterDress(masterDressId, updateData);
+
+    return res.status(200).json({
+      status: true,
+      message: "Master dress updated successfully",
+      data: updateMasterDress,
+    });
+  } catch (err) {
+    generateResponse(res, 400, false, "Failed to update master dress", err.message);
+  }
+};
+
+
+// get all master dress
+
+export const getMasterDressesController = async (req, res) => {
+  try {
+    const result = await listingService.getAllMasterDresses(req.query);
+    return res.status(200).json({
+      status: true,
+      message: 'Master dresses fetched successfully',
+      data: result.data,
+      pagination: result.pagination,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      message: 'Failed to fetch master dresses',
+      error: err.message,
+    });
+  }
+};
+
+
+//get master dress by id
+
+export const getMasterDressByIdController = async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ status: false, message: 'Master Dress ID is required' });
+  }
+
+  try {
+    const masterDress = await listingService.getMasterDressById(id);
+    return res.status(200).json({
+      status: true,
+      message: 'Master Dress retrieved successfully',
+      data: masterDress,
+    });
+  } catch (err) {
+    return generateResponse(res, 404, false, 'Failed to retrieve Master Dress', err.message);
   }
 };

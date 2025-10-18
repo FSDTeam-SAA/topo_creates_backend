@@ -3,7 +3,7 @@ import User from "../../auth/auth.model.js";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-01-27.acacia", // use a fixed API version
+  apiVersion: "2025-01-27.acacia", 
 });
 
 // Shared helper to fetch latest account details & update user
