@@ -5,93 +5,98 @@ import Listing from "../../lender/Listings/listings.model.js";
 import { createFilter, createPaginationInfo } from "../../../lib/pagination.js";
 import payOutModel from "../../lender/payOut/payOut.model.js";
 import paymentModel from "../../Payment/Booking/payment.model.js";
+import MasterDress from "../../admin/Lisitngs/ReviewandMain Site Listing/masterDressModel.js";
 
 
 export const createBookingService = async ({ userId, role, body }) => {
-  const {
-    listingId,
-    
-    rentalStartDate,
-    rentalEndDate,
-    rentalDurationDays,
-    size,
-    deliveryMethod,
-    isManualBooking,
-    manualBookingDescription,
-    customerNotes,
-    lenderNotes,
-    adminNotes,
-  } = body;
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-   if (role === "USER") {
-    const User = mongoose.model("User"); 
-    const user = await User.findById(userId);
-    if (!user || !user.kycVerified) {
-      throw new Error("User KYC not verified. Cannot create booking.");
+  try {
+    const {
+      rentalStartDate,
+      rentalEndDate,
+      rentalDurationDays,
+      size,
+      deliveryMethod,
+      customerNotes,
+      lenderNotes,
+      adminNotes,
+      tryOnRequested,
+      tryOnAllowedByLender,
+      tryOnOutcome,
+      tryOnNotes,
+    } = body;
+
+    // Validate user
+    const User = mongoose.model('User');
+    const user = await User.findById(userId).session(session);
+    if (!user || (role === 'USER' && !user.kycVerified)) {
+      throw new Error('User KYC not verified or user not found.');
     }
+
+    // Fetch Master Dress
+    if (!mongoose.Types.ObjectId.isValid(body.masterdressId)) {
+      throw new Error('Invalid MasterDress ID');
+    }
+    const masterDress = await MasterDress.findById(body.masterdressId).session(session);
+    if (!masterDress) throw new Error('Master dress not found');
+
+    // Calculate rentalFee
+    let rentalFee = masterDress.basePrice;
+    if (rentalDurationDays >= 8) rentalFee += 15; // extra $15 for 8+ days
+
+    // Insurance fee from masterDress
+    const insuranceFee = masterDress.insuranceFee || 0;
+
+    const totalAmount = rentalFee + insuranceFee + 10; // + $10 shippingFee
+
+    // Prepare booking data
+    const bookingData = {
+      customer: user._id,
+      masterdressId: masterDress._id,
+      dressName: masterDress.dressName,
+      rentalStartDate,
+      rentalEndDate,
+      rentalDurationDays,
+      size,
+      deliveryMethod,        // always store
+      rentalFee,
+      insuranceFee,
+      totalAmount,
+      customerNotes: customerNotes || '',
+      lenderNotes: lenderNotes || '',
+      adminNotes: adminNotes || '',
+      shippingFee: 10,       // default fixed
+    };
+
+    // Only save try-on info for Pickup
+    if (deliveryMethod === 'Pickup') {
+      bookingData.tryOnRequested = tryOnRequested || false;
+      bookingData.tryOnAllowedByLender = tryOnAllowedByLender || false;
+      bookingData.tryOnOutcome = tryOnOutcome || 'ProceededWithRental';
+      bookingData.tryOnNotes = tryOnNotes || '';
+    }
+
+    // Create booking
+    const booking = new Booking(bookingData);
+    await booking.save({ session });
+
+    // Populate customer
+    await booking.populate([
+      { path: 'customer', select: '-password -refreshToken' }
+    ]);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return booking;
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  if (!mongoose.Types.ObjectId.isValid(listingId)) {
-    throw new Error("Invalid listing ID");
-  }
-
-  const listing = await Listing.findById(listingId);
-  if (!listing) throw new Error("Listing not found");
-
-
-  const bookingData = {
-    customer: userId,
-    lender: listing.lenderId || null,
-    listing: listingId,
-    rentalStartDate,
-    dressId: listing.dressId,
-    listingId:listing._id,
-    rentalEndDate,
-    rentalDurationDays,
-    size,
-    deliveryMethod,
-  };
-
-  // Manual booking allowed only for lenders
-  if (role === "LENDER" && isManualBooking) {
-    bookingData.isManualBooking = true;
-    bookingData.manualBookingDescription = manualBookingDescription || "";
-  }
-
-  // Shipping-specific fields
-  if (deliveryMethod === "Shipping") {
-    bookingData.deliveryStatus = "Pending";
-  }
-
-  // Pickup-specific fields
-  if (deliveryMethod === "Pickup") {
-    bookingData.tryOnRequested = body.tryOnRequested || false;
-    bookingData.tryOnAllowedByLender = body.tryOnAllowedByLender || false;
-    bookingData.tryOnOutcome = body.tryOnOutcome || "ProceededWithRental";
-    bookingData.tryOnNotes = body.tryOnNotes || "";
-
-
-  }
-
-  // Notes
-  bookingData.customerNotes = customerNotes || "";
-  bookingData.lenderNotes = lenderNotes || "";
-  bookingData.adminNotes = adminNotes || "";
-
-  const booking = new Booking(bookingData);
-  await booking.save(); 
-  
-  listing.status = 'booked';
-await listing.save();
-
-  // Populate customer and lender details
-  await booking.populate([
-    { path: "customer", select: "-password -refreshToken" }, 
-    { path: "lender", select: "-password -refreshToken" },
-    {path:"listing"}
-  ]);
-
-  return booking;
 };
 
 
@@ -256,4 +261,17 @@ export const getLenderBookingStatsService = async () => {
     paidBookingsAmount,
     totalProfit
   };
+};
+
+
+// fetch dress with dress name
+
+export const getMasterDressByNameService = async (dressName) => {
+  // Case-insensitive search
+  const dresses = await MasterDress.find({
+    dressName: { $regex: `^${dressName}$`, $options: 'i' }, // exact match ignoring case
+   
+  }).lean();
+
+  return dresses;
 };

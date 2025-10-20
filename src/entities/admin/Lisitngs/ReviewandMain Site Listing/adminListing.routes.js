@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyToken, adminMiddleware } from '../../../../core/middlewares/authMiddleware.js';
+import { verifyToken, adminMiddleware, userAdminLenderMiddleware } from '../../../../core/middlewares/authMiddleware.js';
 import {
   getAllApprovedDresses,
   adminUpdateAnyDress,
@@ -8,15 +8,16 @@ import {
   adminUpdateMasterDress,
   getMasterDressesController,
   getMasterDressByIdController,
+  getNearestLendersByDressId,
 
 } from './adminListing.controller.js';
 
 const router = express.Router();
 
 router.get('/', getAllApprovedDresses);
-router.get('/master-dresses', verifyToken, adminMiddleware, getMasterDressesController);
-router.get('/master-dress/:id', verifyToken, adminMiddleware, getMasterDressByIdController);
-
+router.get('/master-dresses', getMasterDressesController);
+router.get('/master-dress/:id', verifyToken, userAdminLenderMiddleware, getMasterDressByIdController);
+router.get('/lenders/nearby/:dressId', getNearestLendersByDressId);
 
 router.patch(
   '/:id',

@@ -1,5 +1,5 @@
 import { generateResponse } from '../../../lib/responseFormate.js';
-import { createBookingService, deleteBookingService, getAllBookingsService, getBookingByIdService, getLenderBookingStatsService, getPayoutByBookingIdService, getUserBookingsService, updateBookingService} from '../customer/bookings.service.js';
+import { createBookingService, deleteBookingService, getAllBookingsService, getBookingByIdService, getLenderBookingStatsService, getMasterDressByNameService, getPayoutByBookingIdService, getUserBookingsService, updateBookingService} from '../customer/bookings.service.js';
 
 export const createBookingController = async (req, res) => {
   try {
@@ -129,5 +129,37 @@ export const getLenderBookingStatsController = async (req, res) => {
   } catch (err) {
     console.error(err);
     generateResponse(res, 400, false, err.message || "Failed to fetch stats");
+  }
+};
+
+
+// fetch dress by name 
+
+export const getMasterDressByNameController = async (req, res, next) => {
+  try {
+    const { dressName } = req.query;
+
+    if (!dressName) {
+      return res.status(400).json({
+        success: false,
+        message: "dressName query parameter is required",
+      });
+    }
+
+    const masterDresses = await getMasterDressByNameService(dressName);
+
+    if (!masterDresses || masterDresses.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No master dress found with this name",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: masterDresses,
+    });
+  } catch (err) {
+    next(err);
   }
 };

@@ -390,3 +390,50 @@ export const getMasterDressById = async (id) => {
 
   return masterDress;
 };
+
+
+
+export const getNearestLendersByDressIdService = async (dressId, userLatitude, userLongitude, radius = 10000) => {
+  if (!mongoose.Types.ObjectId.isValid(dressId)) {
+    throw new Error("Invalid dress ID");
+  }
+
+  // Fetch dress document
+  const dress = await MasterDress.findById(dressId).select("lenderIds");
+  if (!dress || !dress.lenderIds || dress.lenderIds.length === 0) {
+    throw new Error("No lenders associated with this dress");
+  }
+
+  // Find lenders within radius and sort by distance
+  const nearestLenders = await User.aggregate([
+    {
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [parseFloat(userLongitude), parseFloat(userLatitude)],
+        },
+        distanceField: "distance",
+        maxDistance: radius, // in meters
+        spherical: true,
+        query: {
+          _id: { $in: dress.lenderIds },
+          role: "LENDER",
+        },
+      },
+    },
+    {
+      $sort: { distance: 1 }, // Nearest first
+    },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        email: 1,
+        distance: 1,
+        location: 1,
+      },
+    },
+  ]);
+
+  return nearestLenders;
+};

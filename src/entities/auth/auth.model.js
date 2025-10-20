@@ -99,6 +99,7 @@ const UserSchema = new mongoose.Schema(
     totalRatting: { type: Number, default: 0 },
     totalListings: { type: Number, default: 0 },
     totalReveneue: { type: Number, default: 0 },
+     totalSpent: { type: Number, default: 0 },
 
     //Adress fro lenders from map
 

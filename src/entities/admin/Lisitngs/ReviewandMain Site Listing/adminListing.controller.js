@@ -164,3 +164,24 @@ export const getMasterDressByIdController = async (req, res) => {
     return generateResponse(res, 404, false, 'Failed to retrieve Master Dress', err.message);
   }
 };
+
+
+// fetch near lenders
+
+export const getNearestLendersByDressId = async (req, res, next) => {
+  try {
+    const { dressId } = req.params;
+    const { latitude, longitude } = req.query;
+
+   
+
+    const lenders = await listingService.getNearestLendersByDressIdService(dressId, latitude, longitude);
+
+    return res.status(200).json({
+      success: true,
+      data: lenders,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

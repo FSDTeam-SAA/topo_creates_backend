@@ -6,13 +6,15 @@ const { Schema } = mongoose;
 const BookingSchema = new Schema(
   {
     customer: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    lender: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    listing: { type: Schema.Types.ObjectId, ref: 'Listings', required: true, index: true },
-    dressId: { type: String, required: true },
+    lender: { type: Schema.Types.ObjectId, ref: 'User'},
+    listing: { type: Schema.Types.ObjectId, ref: 'Listings'},
+    masterdressId: { type: Schema.Types.ObjectId,ref:'MasterDress', required: true },
+    dressName:{type:String},
+    
     rentalStartDate: { type: Date, required: true },
     rentalEndDate: { type: Date, required: true },
     rentalDurationDays: { type: Number, required: true, enum: [4, 8] },
- listingId: { type: String, required: true },
+    listingId: { type: String},
     size: {
       type: String,
       required: true,
@@ -23,7 +25,7 @@ const BookingSchema = new Schema(
       default: 'Shipping',
     },
    
-
+    lenderPrice:{type:Number,default:0},
     rentalFee: { type: Number},
     shippingFee: { type: Number, default: 10, immutable: true },
     insuranceFee: { type: Number, default: 0 },
@@ -36,7 +38,8 @@ const BookingSchema = new Schema(
         'ShippedToCustomer', 'PickedUpByCustomer', 'InPossessionOfCustomer',
         'ReturnInitiated', 'ShippedToLender', 'ReceivedByLender',
         'Completed', 'CancelledByCustomer', 'CancelledByLender',
-        'CancelledByAdmin', 'Disputed', 'IssueReported',
+        'CancelledByAdmin', 'Disputed', 'IssueReported','Accepted','WaitingForPayment',
+        'Delivered','Rejected'
       ],
       default: 'Pending',
       index: true,
@@ -112,12 +115,7 @@ const BookingSchema = new Schema(
 BookingSchema.pre('save', async function (next) {
   try {
 
-       const Listing = mongoose.model("Listings");
-    const listing = await Listing.findById(this.listing); // <-- move here
-
-    if (!listing) {
-      throw new Error("Listing not found");
-    }
+   
     // Initialize statusHistory for new bookings
     if (this.isNew && this.deliveryStatus) {
       this.statusHistory = [
@@ -130,23 +128,7 @@ BookingSchema.pre('save', async function (next) {
     }
 
 
-     if (this.rentalDurationDays === 4) {
-      this.rentalFee = listing.rentalPrice?.fourDays || 0;
-    } else if (this.rentalDurationDays === 8) {
-      this.rentalFee = listing.rentalPrice?.eightDays || 0;
-    } else {
-      this.rentalFee = 0; // fallback
-    }
-
-    // Set insuranceFee if listing requires insurance
-    if (listing && listing.insurance) {
-      this.insuranceFee = 5;
-    } else {
-      this.insuranceFee = 0;
-    }
-
-    // Calculate totalAmount = rental + shipping + insurance
-    this.totalAmount = this.rentalFee + this.shippingFee + this.insuranceFee;
+     
 
     next();
   } catch (err) {
