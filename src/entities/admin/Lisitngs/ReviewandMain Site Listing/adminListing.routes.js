@@ -16,7 +16,7 @@ const router = express.Router();
 
 router.get('/', getAllApprovedDresses);
 router.get('/master-dresses', getMasterDressesController);
-router.get('/master-dress/:id', verifyToken, userAdminLenderMiddleware, getMasterDressByIdController);
+router.get('/master-dress/:id',getMasterDressByIdController);
 router.get('/lenders/nearby/:dressId', getNearestLendersByDressId);
 
 router.patch(
