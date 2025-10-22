@@ -348,7 +348,7 @@ export const updateMasterDress = async (masterDressId, updateData = {}) => {
 
 export const getAllMasterDresses = async (query) => {
   const page = parseInt(query.page, 10) || 1;
-  const limit = parseInt(query.limit, 10) || 20;
+  const limit = parseInt(query.limit, 10) || 10; // default 10
   const skip = (page - 1) * limit;
 
   // Only active master dresses
@@ -362,15 +362,27 @@ export const getAllMasterDresses = async (query) => {
     ];
   }
 
-  const [data, totalData] = await Promise.all([
-    MasterDress.find(filter).skip(skip).limit(limit).lean(),
-    MasterDress.countDocuments(filter),
-  ]);
+  // Fetch data
+  const data = await MasterDress.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 
-  const pagination = createPaginationInfo(page, limit, totalData);
+  const totalItems = await MasterDress.countDocuments(filter);
+  const totalPages = Math.ceil(totalItems / limit);
 
-  return { data, pagination };
+  return {
+    data,
+    pagination: {
+      currentPage: page,
+      itemsPerPage: limit,
+      totalItems,
+      totalPages,
+    },
+  };
 };
+
 
 
 // get master dress by id
