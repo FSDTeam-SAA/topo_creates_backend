@@ -89,7 +89,7 @@ export const refreshStripeAccountStatus = async (req, res) => {
 
 export const getStripeLoginLink = async (req, res) => {
   try {
-    const { userId } = req.user._id;
+    const  userId  = req.user._id;
 
     // Find user to get their connected account ID
     const user = await User.findById(userId);
