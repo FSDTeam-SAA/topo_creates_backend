@@ -128,7 +128,7 @@ const ListingSchema = new Schema(
     },
     pickupOption: {
       type: String,
-      enum: ['Local', 'Australia-wide', 'Both'],
+      enum: ['Local-Pickup', 'Australia-wide', 'Both'],
       required: [true, 'Pickup option is required'],
     },
     approvalStatus: {
