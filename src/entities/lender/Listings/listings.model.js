@@ -40,7 +40,7 @@ const ListingSchema = new Schema(
       trim: true,
     },
    size: {
-      type: String,
+      type: [String],
       enum: [
         "XXS",
         "XS",

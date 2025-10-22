@@ -9,6 +9,9 @@ export const createDress = async (data) => {
 
  
   const dressId = generateDressId(data.dressName, data.brand);
+    if (data.size && !Array.isArray(data.size)) {
+    data.size = [data.size];
+  }
   const dress = new listings({
     ...data,
     lenderId: data.lenderId,
