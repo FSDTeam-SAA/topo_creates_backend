@@ -32,7 +32,7 @@ router.patch(
   verifyToken,
   adminMiddleware,
      multerUpload([
-    { name: "media", maxCount: 100 },
+    { name: "mediaUpload", maxCount: 100 },
     { name: "thumbnail", maxCount: 1 },
   ]),
   adminUpdateMasterDress 

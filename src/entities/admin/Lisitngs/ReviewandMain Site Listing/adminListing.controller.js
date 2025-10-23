@@ -132,8 +132,8 @@ const parseIfJson = (value) => {
 
     // === 1️⃣ Upload New Media Files ===
     let uploadedMedia = [];
-    if (req.files?.media && req.files.media.length > 0) {
-      for (const file of req.files.media) {
+    if (req.files?.mediaUpload && req.files.mediaUpload.length > 0) {
+      for (const file of req.files.mediaUpload) {
         const uploadRes = await cloudinaryUpload(file.path, undefined, "master_dresses/media");
         if (uploadRes?.secure_url) uploadedMedia.push(uploadRes.secure_url);
       }
