@@ -112,13 +112,23 @@ export const adminUpdateMasterDress = async (req, res) => {
 
   try {
     // ✅ Parse JSON fields if sent as strings (common in multipart/form-data)
-    if (typeof updateData.media === "string") {
-      try {
-        updateData.media = JSON.parse(updateData.media);
-      } catch {
-        updateData.media = [];
-      }
+  // ✅ Safely parse nested JSON fields once
+const parseIfJson = (value) => {
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
     }
+  }
+  return value;
+};
+
+// Apply to possible JSON fields
+["media", "sizes", "colors", "materials"].forEach((key) => {
+  if (updateData[key]) updateData[key] = parseIfJson(updateData[key]);
+});
+
 
     // === 1️⃣ Upload New Media Files ===
     let uploadedMedia = [];
