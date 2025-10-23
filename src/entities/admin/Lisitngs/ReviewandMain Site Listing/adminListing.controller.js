@@ -1,3 +1,4 @@
+import { cloudinaryUpload } from "../../../../lib/cloudinaryUpload.js";
 import { generateResponse } from "../../../../lib/responseFormate.js";
 import * as listingService from "./adminListing.service.js";
 
@@ -103,25 +104,62 @@ export const getDressByIdController = async (req, res) => {
 // update master dress
 export const adminUpdateMasterDress = async (req, res) => {
   const { masterDressId } = req.params;
-  const updateData = req.body;
+  let updateData = { ...req.body };
 
   if (!masterDressId) {
     return res.status(400).json({ status: false, message: "MasterDress ID is required" });
   }
 
   try {
-    const updateMasterDress = await listingService.updateMasterDress(masterDressId, updateData);
+    // ✅ Parse JSON fields if sent as strings (common in multipart/form-data)
+    if (typeof updateData.media === "string") {
+      try {
+        updateData.media = JSON.parse(updateData.media);
+      } catch {
+        updateData.media = [];
+      }
+    }
 
+    // === 1️⃣ Upload New Media Files ===
+    let uploadedMedia = [];
+    if (req.files?.media && req.files.media.length > 0) {
+      for (const file of req.files.media) {
+        const uploadRes = await cloudinaryUpload(file.path, undefined, "master_dresses/media");
+        if (uploadRes?.secure_url) uploadedMedia.push(uploadRes.secure_url);
+      }
+    }
+
+    // === 2️⃣ Merge Kept + Newly Uploaded Media ===
+    const keptMedia = Array.isArray(updateData.media) ? updateData.media : [];
+    updateData.media = [...keptMedia, ...uploadedMedia];
+
+    // === 3️⃣ Upload Thumbnail (if provided) ===
+    if (req.files?.thumbnail?.[0]) {
+      const file = req.files.thumbnail[0];
+      const uploadRes = await cloudinaryUpload(file.path, undefined, "master_dresses/thumbnails");
+      if (uploadRes?.secure_url) {
+        updateData.thumbnail = uploadRes.secure_url;
+      }
+    }
+
+    // === 4️⃣ Call Service to Update in DB ===
+    const updatedDress = await listingService.updateMasterDress(masterDressId, updateData);
+
+    // === ✅ Response ===
     return res.status(200).json({
       status: true,
       message: "Master dress updated successfully",
-      data: updateMasterDress,
+      data: updatedDress,
     });
   } catch (err) {
-    generateResponse(res, 400, false, "Failed to update master dress", err.message);
+    console.error("Update MasterDress error:", err);
+    return res.status(500).json({
+      status: false,
+      message: "Failed to update master dress",
+      error: err.message,
+    });
   }
 };
-
 
 // get all master dress
 

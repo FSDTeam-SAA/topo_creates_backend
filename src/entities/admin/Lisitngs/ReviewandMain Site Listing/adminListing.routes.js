@@ -11,6 +11,7 @@ import {
   getNearestLendersByDressId,
 
 } from './adminListing.controller.js';
+import { multerUpload } from '../../../../core/middlewares/multer.js';
 
 const router = express.Router();
 
@@ -23,12 +24,17 @@ router.patch(
   '/:id',
   verifyToken,
   adminMiddleware,
+
   adminUpdateAnyDress
 );
 router.patch(
   '/master/:masterDressId',
   verifyToken,
   adminMiddleware,
+     multerUpload([
+    { name: "media", maxCount: 100 },
+    { name: "thumbnail", maxCount: 1 },
+  ]),
   adminUpdateMasterDress 
 );
 

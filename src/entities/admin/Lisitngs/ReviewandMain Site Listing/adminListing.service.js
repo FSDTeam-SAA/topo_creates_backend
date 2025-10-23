@@ -370,17 +370,18 @@ export const updateMasterDress = async (masterDressId, updateData = {}) => {
   session.startTransaction();
 
   try {
-    const masterDress = await MasterDress.findOne({ masterDressId }).session(
-      session
-    );
-    if (!masterDress) throw new Error('MasterDress not found');
+    const masterDress = await MasterDress.findOne({ masterDressId }).session(session);
+    if (!masterDress) throw new Error("MasterDress not found");
 
-    // Merge updateData dynamically
+    // ✅ Merge new fields
     Object.assign(masterDress, updateData);
 
-    // Save in transaction
-    await masterDress.save({ session });
+    // ✅ Ensure thumbnail exists
+    if (!masterDress.thumbnail && masterDress.media?.length > 0) {
+      masterDress.thumbnail = masterDress.media[0];
+    }
 
+    await masterDress.save({ session });
     await session.commitTransaction();
     session.endSession();
 
@@ -391,6 +392,8 @@ export const updateMasterDress = async (masterDressId, updateData = {}) => {
     throw err;
   }
 };
+
+
 
 // get all master dress
 
