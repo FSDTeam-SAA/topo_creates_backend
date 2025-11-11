@@ -45,7 +45,6 @@ export const stripeWebhookHandler = async (req, res) => {
   const metadata = session.metadata || {};
 
 
-
   // ✅ Case 2: Booking payment (Pay-now flow)
   if (metadata.bookingId) {
     await handleBookingPaymentEvents(event);
