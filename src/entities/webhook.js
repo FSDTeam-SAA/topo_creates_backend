@@ -44,11 +44,7 @@ export const stripeWebhookHandler = async (req, res) => {
   // ✅ Extract metadata safely
   const metadata = session.metadata || {};
 
-  // ✅ Case 1: SetupIntent mode (Save card only — no payment)
-  if (session.mode === "setup") {
-    await handleSetupIntentCompleted(event);
-    return;
-  }
+
 
   // ✅ Case 2: Booking payment (Pay-now flow)
   if (metadata.bookingId) {
