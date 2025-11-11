@@ -93,6 +93,7 @@ export const createSetupIntentService = async (userId) => {
     mode: "setup",
     customer: stripeCustomerId,
     payment_method_types: ["card"],
+     metadata: { userId: user._id.toString() },
     success_url: `${process.env.FRONTEND_URL}/payment/success`,
     cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
   });
