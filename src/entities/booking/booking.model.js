@@ -1,6 +1,33 @@
 import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
+// lender allocation data for both the shipping and the local pick up 
+
+const LenderInfoSchema = new mongoose.Schema({
+  lenderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  email: { type: String },
+  price: { type: Number }, // optional if you want to store the lender's offer
+  distance: { type: Number }, // from API
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+coordinates: {
+  type: [Number],
+  required: function() {
+    return this.allocationType === 'LocalPickup';
+  }
+}
+
+
+  },
+  allocatedAt: { type: Date, default: Date.now },
+  allocationType: { type: String, enum: ['LocalPickup', 'Shipping'], default: 'LocalPickup' },
+});
+
+
 
 // Main Booking schema
 const BookingSchema = new Schema(
@@ -10,7 +37,7 @@ const BookingSchema = new Schema(
     listing: { type: Schema.Types.ObjectId, ref: 'Listings'},
     masterdressId: { type: Schema.Types.ObjectId,ref:'MasterDress', required: true },
     dressName:{type:String},
-    
+    allocatedLender: LenderInfoSchema,
     rentalStartDate: { type: Date, required: true },
     rentalEndDate: { type: Date, required: true },
     rentalDurationDays: { type: Number, required: true, enum: [4, 8] },

@@ -8,12 +8,15 @@ import paymentModel from "../../Payment/Booking/payment.model.js";
 import MasterDress from "../../admin/Lisitngs/ReviewandMain Site Listing/masterDressModel.js";
 
 
+
+
 export const createBookingService = async ({ userId, role, body }) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const {
+      masterdressId,
       rentalStartDate,
       rentalEndDate,
       rentalDurationDays,
@@ -26,32 +29,78 @@ export const createBookingService = async ({ userId, role, body }) => {
       tryOnAllowedByLender,
       tryOnOutcome,
       tryOnNotes,
+      selectedLender // only for Pickup
     } = body;
 
-    // Validate user
+    // --- Validate user ---
     const User = mongoose.model('User');
     const user = await User.findById(userId).session(session);
     if (!user || (role === 'USER' && !user.kycVerified)) {
       throw new Error('User KYC not verified or user not found.');
     }
 
-    // Fetch Master Dress
-    if (!mongoose.Types.ObjectId.isValid(body.masterdressId)) {
-      throw new Error('Invalid MasterDress ID');
-    }
-    const masterDress = await MasterDress.findById(body.masterdressId).session(session);
+    // --- Fetch Master Dress ---
+    if (!mongoose.Types.ObjectId.isValid(masterdressId)) throw new Error('Invalid MasterDress ID');
+    const masterDress = await MasterDress.findById(masterdressId).session(session);
     if (!masterDress) throw new Error('Master dress not found');
 
-    // Calculate rentalFee
-    let rentalFee = masterDress.basePrice;
-    if (rentalDurationDays >= 8) rentalFee += 15; // extra $15 for 8+ days
-
-    // Insurance fee from masterDress
+    // --- Base fees ---
     const insuranceFee = masterDress.insuranceFee || 0;
+    const shippingFee = 10;
 
-    const totalAmount = rentalFee + insuranceFee + 10; // + $10 shippingFee
+    // --- Allocate lender ---
+   
 
-    // Prepare booking data
+let allocatedLender = null;
+
+if (deliveryMethod === 'Pickup' && selectedLender) {
+  const lender = selectedLender[0]; // { _id, email, location, distance }
+  allocatedLender = {
+    lenderId: lender._id,
+    email: lender.email,
+    distance: lender.distance,
+    location: lender.location, // MUST include coordinates
+    allocationType: 'LocalPickup',
+   
+  };
+} else if (deliveryMethod === 'Shipping') {
+  const listings = await Listing.find({
+    _id: { $in: masterDress.listingIds },
+    isActive: true,
+    approvalStatus: 'approved'
+  }).session(session);
+
+  if (!listings.length) throw new Error('No active/approved listings found for shipping.');
+
+  let lowestPriceListing = rentalDurationDays <= 4
+    ? listings.reduce((prev, curr) => curr.rentalPrice.fourDays < prev.rentalPrice.fourDays ? curr : prev)
+    : listings.reduce((prev, curr) => curr.rentalPrice.eightDays < prev.rentalPrice.eightDays ? curr : prev);
+
+  allocatedLender = {
+    lenderId: lowestPriceListing.lenderId,
+    email: lowestPriceListing.lenderEmail || '',
+    price: rentalDurationDays <= 4
+      ? lowestPriceListing.rentalPrice.fourDays
+      : lowestPriceListing.rentalPrice.eightDays,
+    allocationType: 'Shipping',
+    
+    // <-- NO location field at all
+  };
+}
+
+
+
+
+    if (!allocatedLender) throw new Error('Failed to allocate lender.');
+
+    // --- Calculate rentalFee & totalAmount ---
+    const rentalFee = allocatedLender.allocationType === 'Shipping'
+      ? allocatedLender.price
+      : masterDress.basePrice + (rentalDurationDays >= 8 ? 15 : 0);
+
+    const totalAmount = rentalFee + insuranceFee + shippingFee;
+
+    // --- Prepare booking data ---
     const bookingData = {
       customer: user._id,
       masterdressId: masterDress._id,
@@ -60,17 +109,18 @@ export const createBookingService = async ({ userId, role, body }) => {
       rentalEndDate,
       rentalDurationDays,
       size,
-      deliveryMethod,        // always store
+      deliveryMethod,
       rentalFee,
       insuranceFee,
+      shippingFee,
       totalAmount,
       customerNotes: customerNotes || '',
       lenderNotes: lenderNotes || '',
       adminNotes: adminNotes || '',
-      shippingFee: 10,       // default fixed
+      allocatedLender
     };
 
-    // Only save try-on info for Pickup
+    // Try-on fields only for Pickup
     if (deliveryMethod === 'Pickup') {
       bookingData.tryOnRequested = tryOnRequested || false;
       bookingData.tryOnAllowedByLender = tryOnAllowedByLender || false;
@@ -78,14 +128,12 @@ export const createBookingService = async ({ userId, role, body }) => {
       bookingData.tryOnNotes = tryOnNotes || '';
     }
 
-    // Create booking
+    // --- Save booking ---
     const booking = new Booking(bookingData);
     await booking.save({ session });
 
-    // Populate customer
-    await booking.populate([
-      { path: 'customer', select: '-password -refreshToken' }
-    ]);
+    // Populate customer info
+    await booking.populate([{ path: 'customer', select: '-password -refreshToken' }]);
 
     await session.commitTransaction();
     session.endSession();
@@ -98,6 +146,7 @@ export const createBookingService = async ({ userId, role, body }) => {
     throw error;
   }
 };
+
 
 
 

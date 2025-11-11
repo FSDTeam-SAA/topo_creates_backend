@@ -120,7 +120,7 @@ export const deleteBookingController = async (req, res) => {
 };
 
 
-
+// get lender dashboard stats 
 export const getLenderBookingStatsController = async (req, res) => {
   try {
     const stats = await getLenderBookingStatsService(); 
