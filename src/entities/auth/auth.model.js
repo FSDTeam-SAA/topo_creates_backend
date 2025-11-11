@@ -113,6 +113,14 @@ const UserSchema = new mongoose.Schema(
     longitude: { type: Number, default: 0 },
     address: { type: String, default: '' },
 
+    // stripe customer setup save card info
+    stripeCustomerId: { type: String, default: null },
+    defaultPaymentMethodId: { type: String, default: null },
+
+    stripeCustomerId: { type: String, default: null },
+defaultPaymentMethodId: { type: String, default: null },
+
+
     // onboarding lender relarted fields
 
     stripeAccountId: {

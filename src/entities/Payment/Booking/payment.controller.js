@@ -2,7 +2,7 @@
 
 
 import { generateResponse } from "../../../lib/responseFormate.js";
-import { createBookingPaymentService } from "./payment.service.js";
+import { createBookingPaymentService, createSetupIntentService } from "./payment.service.js";
 
 
 export const createBookingPaymentController = async (req, res) => {
@@ -20,5 +20,17 @@ export const createBookingPaymentController = async (req, res) => {
   } catch (err) {
     console.error(err);
     generateResponse(res, 400, false, err.message || "Failed to create checkout session");
+  }
+};
+
+export const createSetupIntentController = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await createSetupIntentService(userId);
+
+ generateResponse(res, 200, true, "Setup intent created", result);
+  } catch (err) {
+    generateResponse(res, 400, false, err.message || "Failed to create setup intent");
   }
 };

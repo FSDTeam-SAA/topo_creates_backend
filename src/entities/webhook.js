@@ -3,6 +3,7 @@ import { handleVerificationSessionEvent } from './KYC Verification/kyc.webhook.j
 import { handleBookingPaymentEvents } from './Payment/Booking/webhook.controller.js';
 import { handleSubscriptionPaymentEvents } from './Payment/Subscription/subsPayment.webhook.js';
 import Payment from './Payment/Booking/payment.model.js';
+import { handleSetupIntentCompleted } from './Payment/SaveCardInfoHandler.js';
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -33,16 +34,38 @@ export const stripeWebhookHandler = async (req, res) => {
   'identity.verification_session.verified': handleVerificationSessionEvent,
   'identity.verification_session.canceled': handleVerificationSessionEvent,
   'identity.verification_session.expired': handleVerificationSessionEvent,
+  'setup_intent.succeeded': handleSetupIntentCompleted,
+
 
   // All payment events (booking or subscription)
   'checkout.session.completed': async (event) => {
-    const metadata = event.data.object.metadata;
-    if (metadata.bookingId) {
-      await handleBookingPaymentEvents(event);
-    } else if (metadata.planId) {
-      await handleSubscriptionPaymentEvents(event);
-    }
-  },
+  const session = event.data.object;
+
+  // ✅ Extract metadata safely
+  const metadata = session.metadata || {};
+
+  // ✅ Case 1: SetupIntent mode (Save card only — no payment)
+  if (session.mode === "setup") {
+    await handleSetupIntentCompleted(event);
+    return;
+  }
+
+  // ✅ Case 2: Booking payment (Pay-now flow)
+  if (metadata.bookingId) {
+    await handleBookingPaymentEvents(event);
+    return;
+  }
+
+  // ✅ Case 3: Subscription payment
+  if (metadata.planId) {
+    await handleSubscriptionPaymentEvents(event);
+    return;
+  }
+
+  // ✅ Default fallback (ignored)
+  console.log(`ℹ️ checkout.session.completed but no matching metadata.`);
+},
+
   'payment_intent.succeeded': async (event) => {
     const payment = await Payment.findOne({ "stripe.paymentIntentId": event.data.object.id });
     if (!payment) return;

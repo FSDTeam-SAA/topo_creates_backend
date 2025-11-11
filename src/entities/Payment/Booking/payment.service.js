@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Booking } from "../../booking/booking.model.js";
 import Payment from "./payment.model.js";
 
@@ -69,3 +70,32 @@ export const createBookingPaymentService = async ({ bookingId, customerId }) => 
 };
 
 
+export const createSetupIntentService = async (userId) => {
+  const User = mongoose.model("User");
+  const user = await User.findById(userId);
+
+  if (!user) throw new Error("User not found");
+
+  // 1. Create Stripe Customer if missing
+  let stripeCustomerId = user.stripeCustomerId;
+  if (!stripeCustomerId) {
+    const customer = await stripe.customers.create({
+      email: user.email,
+      metadata: { userId: user._id.toString() },
+    });
+    stripeCustomerId = customer.id;
+    user.stripeCustomerId = customer.id;
+    await user.save();
+  }
+
+  // 2. Create Stripe Checkout Session for SetupIntent
+  const session = await stripe.checkout.sessions.create({
+    mode: "setup",
+    customer: stripeCustomerId,
+    payment_method_types: ["card"],
+    success_url: `${process.env.FRONTEND_URL}/payment/success`,
+    cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
+  });
+
+  return { url: session.url };
+};
