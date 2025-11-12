@@ -30,23 +30,24 @@ export const payForSubscription = async (req, res) => {
       const user = await User.findById(userId);
       user.hasActiveSubscription = true;
       user.subscriptionStartDate = new Date();
-      let durationDays;
-switch (plan.billingCycle) {
-  case "monthly":
-    durationDays = 30;
-    break;
-  case "quarterly":
-    durationDays = 90;
-    break;
-  case "yearly":
-    durationDays = 365;
-    break;
-  default:
-    durationDays = 30;
-}
-      user.subscriptionExpireDate = new Date(
-        Date.now() + plan.durationDays * 24 * 60 * 60 * 1000
-      );
+ let durationDays;
+  switch (plan.billingCycle) {
+    case "monthly":
+      durationDays = 30;
+      break;
+    case "quarterly":
+      durationDays = 90;
+      break;
+    case "yearly":
+      durationDays = 365;
+      break;
+    default:
+      durationDays = 30;
+  }
+
+  user.subscriptionExpireDate = new Date(
+    Date.now() + durationDays * 24 * 60 * 60 * 1000
+  );
       user.subscription.planId = plan._id;
       await user.save();
 
