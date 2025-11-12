@@ -23,11 +23,27 @@ export const payForSubscription = async (req, res) => {
       return res.status(404).json({ status: false, message: "Plan not found" });
     }
 
+    
+
     // ✅ If FREE plan (price = 0) → activate immediately
     if (plan.price === 0) {
       const user = await User.findById(userId);
       user.hasActiveSubscription = true;
       user.subscriptionStartDate = new Date();
+      let durationDays;
+switch (plan.billingCycle) {
+  case "monthly":
+    durationDays = 30;
+    break;
+  case "quarterly":
+    durationDays = 90;
+    break;
+  case "yearly":
+    durationDays = 365;
+    break;
+  default:
+    durationDays = 30;
+}
       user.subscriptionExpireDate = new Date(
         Date.now() + plan.durationDays * 24 * 60 * 60 * 1000
       );
