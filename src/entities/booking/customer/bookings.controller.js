@@ -52,7 +52,7 @@ export const getAllBookingsController = async (req, res) => {
 // GET BY BOOKING ID
 export const getBookingByIdController = async (req, res) => {
   try {
-    const bookingId = req.params.id;
+    const bookingId = req.params.bookingId;
     const userId = req.user.id; // logged-in user
     const role = req.user.role; // role: USER, LENDER, ADMIN
 

@@ -42,6 +42,12 @@ const BookingSchema = new Schema(
     rentalEndDate: { type: Date, required: true },
     rentalDurationDays: { type: Number, required: true, enum: [4, 8] },
     listingId: { type: String},
+    city: { type: String, default: '' },
+    state: { type: String, default: '' },
+    country: { type: String, default: '' },
+    postcode: { type: String, default: '' },
+    suburb: { type: String, default: '' },
+    address: { type: String, default: '' }, 
     size: {
       type: String,
       required: true,

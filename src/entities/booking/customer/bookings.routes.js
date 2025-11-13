@@ -23,7 +23,7 @@ router.get("/all", verifyToken, userAdminLenderMiddleware, getAllBookingsControl
 router.get('/stats',getLenderBookingStatsController)
 router.get('/search', getMasterDressByNameController);
 
-router.get("/:id", verifyToken, userAdminLenderMiddleware, getBookingByIdController);
+router.get("/:bookingId", verifyToken, userAdminLenderMiddleware, getBookingByIdController);
 // Get bookings of logged-in user
 
 router.get("/user/me", verifyToken, userMiddleware, getUserBookingsController);
