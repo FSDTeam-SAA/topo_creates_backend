@@ -413,6 +413,24 @@ export const getAllMasterDresses = async (query) => {
     ];
   }
 
+   // Price range filtering (basePrice is ROOT level)
+  if (query.minPrice || query.maxPrice) {
+    filter.basePrice = {};
+
+    if (query.minPrice) {
+      filter.basePrice.$gte = Number(query.minPrice);
+    }
+    if (query.maxPrice) {
+      filter.basePrice.$lte = Number(query.maxPrice);
+    }
+  }
+
+  // Size filter (sizes = string array)
+  if (query.size) {
+    filter.sizes = { $in: [query.size] };
+  }
+
+
   const [data, totalData] = await Promise.all([
     MasterDress.find(filter).skip(skip).limit(limit).lean(),
     MasterDress.countDocuments(filter)
