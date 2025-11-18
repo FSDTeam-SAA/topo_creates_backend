@@ -4,7 +4,7 @@ const PaymentSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ['booking', 'subscription'], // extendable for subscriptions or products later
+      enum: ['booking', 'subscription'], 
       required: true
     },
     subscription: {
@@ -39,7 +39,6 @@ const PaymentSchema = new mongoose.Schema(
       type: String,
       default: 'usd'
     },
-
     status: {
       type: String,
       enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
@@ -61,4 +60,11 @@ const PaymentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model('Payment', PaymentSchema);
+// export default mongoose.model('Payment', PaymentSchema);
+
+
+// export default Payment = mongoose.model('Payment', PaymentSchema);
+
+
+const Payment = mongoose.model('Payment', PaymentSchema);
+export default Payment;

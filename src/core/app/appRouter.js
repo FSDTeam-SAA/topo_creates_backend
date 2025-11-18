@@ -26,6 +26,9 @@ import subscriptionRoutes from '../../entities/subscription/subscription.routes.
 import payOutRoutes from '../../entities/lender/payOut/payOuts.routes.js'
 import supportRoutes from '../../entities/support/support.routes.js'
 import adminDispute from '../../entities/dispute/admin/dispute.routes.js';
+import overviewRoutes from '../../entities/lender/overview/overview.routes.js';
+
+
 const router = express.Router();
 
 
@@ -55,6 +58,8 @@ router.use('/v1/testimonoal', testimonialRoutes)
 router.use('/v1/termsAndConditions', termsAndConditionsRoutes); 
 router.use('/v1/homepageSections', homepageSectionsRoutes);
 
+
+router.use('/v1/lender/overview', overviewRoutes)
 
 
 // lender routes
