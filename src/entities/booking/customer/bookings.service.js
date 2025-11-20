@@ -95,7 +95,7 @@ if (deliveryMethod === 'Pickup' && selectedLender) {
 
     // --- Calculate rentalFee & totalAmount ---
     const rentalFee = allocatedLender.allocationType === 'Shipping'
-      ? allocatedLender.price
+      ?  masterDress.basePrice
       : masterDress.basePrice + (rentalDurationDays >= 8 ? 15 : 0);
 
     const totalAmount = rentalFee + insuranceFee + shippingFee;
@@ -223,13 +223,13 @@ export const updateBookingService = async ({ bookingId, userId, role, updateData
   const booking = await Booking.findById(bookingId);
   if (!booking) throw new Error("Booking not found");
 
-  // Only allow the user/lender/admin who owns this booking or admin to update
-  if (role === "USER" && booking.customer.toString() !== userId) {
-    throw new Error("Unauthorized: cannot update this booking");
-  }
-  if (role === "LENDER" && booking.lender.toString() !== userId) {
-    throw new Error("Unauthorized: cannot update this booking");
-  }
+  // // Only allow the user/lender/admin who owns this booking or admin to update
+  // if (role === "USER" && booking.customer.toString() !== userId) {
+  //   throw new Error("Unauthorized: cannot update this booking");
+  // }
+  // if (role === "LENDER" && booking.lender.toString() !== userId) {
+  //   throw new Error("Unauthorized: cannot update this booking");
+  // }
   // ADMIN can update any booking
 
   // Update all fields (all roles can update their own bookings)
@@ -324,3 +324,5 @@ export const getMasterDressByNameService = async (dressName) => {
 
   return dresses;
 };
+
+

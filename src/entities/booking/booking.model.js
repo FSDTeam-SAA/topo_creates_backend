@@ -70,9 +70,9 @@ const BookingSchema = new Schema(
         'Pending', 'Confirmed', 'PreparingShipment', 'LabelReady',
         'ShippedToCustomer', 'PickedUpByCustomer', 'InPossessionOfCustomer',
         'ReturnInitiated', 'ShippedToLender', 'ReceivedByLender',
-        'Completed', 'CancelledByCustomer', 'CancelledByLender',
+        'Completed', 'CancelledByCustomer', 'CancelledByLender','Return Due','Dress Returned',
         'CancelledByAdmin', 'Disputed', 'IssueReported','Accepted','WaitingForPayment',
-        'Delivered','Rejected'
+        'Delivered','Rejected','RejectedByLender','PaymentRetryScheduled','AcceptedByLender'
       ],
       default: 'Pending',
       index: true,
@@ -85,15 +85,15 @@ const BookingSchema = new Schema(
         reason: String,
       },
     ],
-
-    paymentIntentId: { type: String },
+paymentErrorMessage: { type: String },
+    paymentIntent: { type: String },
     stripePaymentIntentId: { type: String },
     stripeChargeId: { type: String },
     stripeRefundId: { type: String },
     stripeTransferId: { type: String },
     paymentStatus: {
       type: String,
-      enum: ['Pending', 'Paid','Succeeded', 'Failed', 'Refunded', 'PartiallyRefunded'],
+      enum: ['Pending','RetryPending', 'Paid','Succeeded', 'Failed', 'Refunded', 'PartiallyRefunded','NotCharged'],
       default: 'Pending',
     },
     payoutStatus: {

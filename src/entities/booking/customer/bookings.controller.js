@@ -81,10 +81,10 @@ export const getUserBookingsController = async (req, res) => {
 export const updateBookingController = async (req, res) => {
   try {
     const userId = req.user.id;
-    const role = req.user.role; 
+    // const role = req.user.role; 
     const bookingId = req.params.id;
 
-    const booking = await updateBookingService({ bookingId, userId, role, updateData: req.body });
+    const booking = await updateBookingService({ bookingId, userId, updateData: req.body });
 
     generateResponse(res, 200, true, "Booking updated successfully", booking);
   } catch (err) {

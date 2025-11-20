@@ -60,7 +60,7 @@ app.use('/uploads', express.static(uploadPath));
 
 // Home route
 app.get('/', (req, res) => {
-  res.send({ message: 'Welcome to the API' });
+  res.send({ message: 'Server is running' });
 });
 
 // API routes

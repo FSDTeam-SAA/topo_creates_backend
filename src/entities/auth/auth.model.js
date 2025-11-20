@@ -101,6 +101,11 @@ const UserSchema = new mongoose.Schema(
     totalReveneue: { type: Number, default: 0 },
      totalSpent: { type: Number, default: 0 },
 
+      
+    firstBookingDiscountUsed: { type: Boolean, default: false },
+    spent300DiscountUsed: { type: Boolean, default: false },
+   spent600DiscountUsed: { type: Boolean, default: false },
+
     //Adress fro lenders from map
 
     city: { type: String, default: '' },

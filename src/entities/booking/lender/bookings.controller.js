@@ -1,4 +1,4 @@
-import { getAllocatedBookingsForLenderService, getUpcomingBookingsForLenderService } from "./booking.service.js";
+import { acceptOrRejectBookingService, getAllocatedBookingsForLenderService, getUpcomingBookingsForLenderService } from "./booking.service.js";
 
 export const getAllocatedBookingsForLenderController = async (req, res) => {
   try {
@@ -55,6 +55,33 @@ export const getUpcomingBookingsForLenderController = async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       status: false,
+      message: err.message
+    });
+  }
+};
+
+
+ // auto pay after accepting the booking 
+
+ export const acceptOrRejectBookingController = async (req, res) => {
+  try {
+    const { bookingId, action } = req.body;
+    const lenderId = req.user.id;
+
+    const result = await acceptOrRejectBookingService({
+      bookingId,
+      lenderId,
+      action
+    });
+
+    return res.status(200).json({
+      success: true,
+      ...result
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
       message: err.message
     });
   }
