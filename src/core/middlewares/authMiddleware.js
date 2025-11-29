@@ -65,6 +65,20 @@ const adminMiddleware = (req, res, next) => {
 };
 
 
+const superadminMiddleware = (req, res, next) => {
+  if (!req.user) {
+    return generateResponse(res, 401, false, 'Unauthorized: Admin not found', null);
+  }
+  const { role } = req.user;
+
+  if (role !== "SUPER_ADMIN") {
+    generateResponse(res, 403, false, 'Super Admin access only', null);
+  }
+
+  next();
+};
+
+
 const lenderMiddleware = (req, res, next) => {
   if (!req.user) {
     return generateResponse(res, 401, false, 'Unauthorized: Lender not found', null);
@@ -104,5 +118,15 @@ const userAdminLenderMiddleware = (req, res, next) => {
 };
 
 
-export{ userMiddleware, adminMiddleware, lenderMiddleware, adminLenderMiddleware, userAdminLenderMiddleware };
+const superAdminOrAdminMiddleware = (req, res, next) => {
+  const { role } = req.user || {};
 
+  if (![RoleType.SUPER_ADMIN, RoleType.ADMIN].includes(role))
+ {
+    return generateResponse(res, 403, false, 'Super Admin or Admin access only', null);
+  }
+  next();
+};
+
+
+export{ userMiddleware, adminMiddleware, lenderMiddleware, adminLenderMiddleware, userAdminLenderMiddleware, superAdminOrAdminMiddleware, superadminMiddleware };
