@@ -25,7 +25,7 @@ export const getAllCustomersController = async (req, res) => {
 export const getCustomerByIdController = async (req, res) => {
   try {
     const customerId = req.params.id;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 3 } = req.query;
 
     const data = await getCustomerByIdService(customerId, page, limit);
 
