@@ -82,11 +82,11 @@ export const getAllCustomersService = async (query) => {
 
   const total = await User.countDocuments(filter);
 
+  const pagination = createPaginationInfo(Number(page), Number(limit), total);
+
   return {
-    page: Number(page),
-    limit: Number(limit),
-    total,
-    customers: result
+    customers: result,
+    pagination
   };
 };
 
