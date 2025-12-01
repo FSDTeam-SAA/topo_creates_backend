@@ -2,10 +2,11 @@
 import mongoose from "mongoose";
 import { Booking } from "../booking.model.js";
 import Listing from "../../lender/Listings/listings.model.js";
-import { createFilter, createPaginationInfo } from "../../../lib/pagination.js";
+import { createPaginationInfo } from "../../../lib/pagination.js";
 import payOutModel from "../../lender/payOut/payOut.model.js";
 import paymentModel from "../../Payment/Booking/payment.model.js";
 import MasterDress from "../../admin/Lisitngs/ReviewandMain Site Listing/masterDressModel.js";
+import { ChatRoom } from "../../message/chatRoom.model.js";
 
 
 
@@ -29,7 +30,7 @@ export const createBookingService = async ({ userId, role, body }) => {
       tryOnAllowedByLender,
       tryOnOutcome,
       tryOnNotes,
-      selectedLender // only for Pickup
+      selectedLender 
     } = body;
 
     // --- Validate user ---
@@ -149,12 +150,8 @@ if (deliveryMethod === 'Pickup' && selectedLender) {
 
 
 
-
-
-
-// GET ALL BOOKINGS
 export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, role, userId }) => {
-  // 1. Build filter object with only defined fields
+  // 1. Build filter object
   const filterQuery = {};
 
   if (query.search) filterQuery.search = query.search;
@@ -163,15 +160,14 @@ export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, 
   if (query.customer) filterQuery.customer = query.customer;
   if (query.lender) filterQuery.lender = query.lender;
 
-  // 2. Apply role-based restrictions
+  // Role filtering
   if (role === "USER") filterQuery.customer = userId;
   else if (role === "LENDER") filterQuery.lender = userId;
-  // ADMIN sees all, no restriction
 
-  // 3. Count total for pagination
+  // 2. Count
   const totalBookings = await Booking.countDocuments(filterQuery);
 
-  // 4. Fetch bookings with pagination and populated fields
+  // 3. Fetch bookings
   const bookings = await Booking.find(filterQuery)
     .populate([
       { path: "customer", select: "-password -refreshToken" },
@@ -180,13 +176,71 @@ export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, 
     ])
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(limit);
+    .limit(limit)
+    .lean(); // important
 
-  // 5. Pagination info
+  // ------ ADD CHATROOM DATA HERE -------
+  const bookingIds = bookings.map((b) => b._id);
+
+  const chatRooms = await ChatRoom.find({ bookingId: { $in: bookingIds } })
+    .lean();
+
+  const chatRoomMap = {};
+  chatRooms.forEach(cr => {
+    chatRoomMap[cr.bookingId.toString()] = cr;
+  });
+
+  // merge chatRoom into each booking
+  const bookingsWithChat = bookings.map(b => ({
+    ...b,
+    chatRoom: chatRoomMap[b._id.toString()] || null,
+  }));
+  // --------------------------------------
+
+  // Pagination
   const paginationInfo = createPaginationInfo(page, limit, totalBookings);
 
-  return { bookings, paginationInfo };
+  return { bookings: bookingsWithChat, paginationInfo };
 };
+
+
+
+// GET ALL BOOKINGS
+// export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, role, userId }) => {
+//   // 1. Build filter object with only defined fields
+//   const filterQuery = {};
+
+//   if (query.search) filterQuery.search = query.search;
+//   if (query.date) filterQuery.date = query.date;
+//   if (query.dressId) filterQuery.dressId = query.dressId;
+//   if (query.customer) filterQuery.customer = query.customer;
+//   if (query.lender) filterQuery.lender = query.lender;
+
+//   // 2. Apply role-based restrictions
+//   if (role === "USER") filterQuery.customer = userId;
+//   else if (role === "LENDER") filterQuery.lender = userId;
+//   // ADMIN sees all, no restriction
+
+//   // 3. Count total for pagination
+//   const totalBookings = await Booking.countDocuments(filterQuery);
+
+//   // 4. Fetch bookings with pagination and populated fields
+//   const bookings = await Booking.find(filterQuery)
+//     .populate([
+//       { path: "customer", select: "-password -refreshToken" },
+//       { path: "lender", select: "-password -refreshToken" },
+//       { path: "listing" },
+//     ])
+//     .sort({ createdAt: -1 })
+//     .skip((page - 1) * limit)
+//     .limit(limit);
+
+//   // 5. Pagination info
+//   const paginationInfo = createPaginationInfo(page, limit, totalBookings);
+
+//   return { bookings, paginationInfo };
+// };
+
 
 // Get booking by ID with role check
 export const getBookingByIdService = async ({ bookingId, userId, role }) => {

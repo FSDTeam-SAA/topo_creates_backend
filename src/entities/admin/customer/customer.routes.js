@@ -1,20 +1,19 @@
 import express from "express";
-import { adminMiddleware, verifyToken } from "../../../core/middlewares/authMiddleware.js";
+import {  superAdminOrAdminMiddleware, verifyToken } from "../../../core/middlewares/authMiddleware.js";
 import { getAllCustomersController, getCustomerByIdController, getCustomerStatsController } from "./customer.controller.js";
 
 
 const router = express.Router();
 
 
-router.get("/customer-stats", verifyToken, adminMiddleware, getCustomerStatsController);
-router.get("/all-customers", verifyToken, adminMiddleware, getAllCustomersController);
+router.get("/customer-stats", verifyToken, superAdminOrAdminMiddleware, getCustomerStatsController);
+router.get("/all-customers", verifyToken, superAdminOrAdminMiddleware, getAllCustomersController);
 
 router.get(
   "/:id",
   verifyToken,
-  adminMiddleware,
+  superAdminOrAdminMiddleware,
   getCustomerByIdController
 );
-
 
 export default router;
