@@ -1,7 +1,7 @@
 import express from "express";
 
 import { multerUpload } from "../../core/middlewares/multer.js";
-import { adminLenderMiddleware, adminMiddleware, lenderMiddleware, verifyToken } from "../../core/middlewares/authMiddleware.js";
+import { adminLenderSuperadminMiddleware, adminMiddleware, lenderMiddleware, superAdminOrAdminMiddleware, verifyToken } from "../../core/middlewares/authMiddleware.js";
 import { createGeneralContact, createLenderContact, getAllContactsController, getContactByIdController, getContactsStats, updateContactController} from "./support.controller.js";
 
 
@@ -22,16 +22,16 @@ router.post(
 );
 
 // Admin only
-router.get("/get", verifyToken,adminMiddleware,
+router.get("/get", verifyToken,superAdminOrAdminMiddleware,
   
  getAllContactsController);
- router.get("/stats", verifyToken, adminMiddleware, getContactsStats);
+ router.get("/stats", verifyToken, superAdminOrAdminMiddleware, getContactsStats);
 
 // ---------------------- GET CONTACT BY ID ----------------------
 router.get("/:id", getContactByIdController);
 
 // ---------------------- UPDATE CONTACT ----------------------
-router.patch("/:id",verifyToken,adminLenderMiddleware, updateContactController);
+router.patch("/:id",verifyToken, adminLenderSuperadminMiddleware , updateContactController);
 
 
 

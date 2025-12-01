@@ -10,8 +10,9 @@ import {
 } from './listings.controller.js';
 import {
   adminLenderMiddleware,
-  adminMiddleware,
+  adminLenderSuperadminMiddleware,
   lenderMiddleware,
+  superAdminOrAdminMiddleware,
   verifyToken
 } from '../../../core/middlewares/authMiddleware.js';
 
@@ -23,7 +24,7 @@ const router = express.Router();
 router.post('/listings', verifyToken, lenderMiddleware, listDress);
 
 // Lender fetches their own dresses
-router.get('/', verifyToken, adminLenderMiddleware, getDressesByLender);
+router.get('/', verifyToken, adminLenderSuperadminMiddleware, getDressesByLender);
 
 // Lender stats
 router.get(
@@ -36,13 +37,13 @@ router.get(
 // ---------------- ADMIN ROUTES ---------------- //
 
 // Admin fetches all dresses
-router.get('/admin/', verifyToken, adminMiddleware, getAllDresses);
+router.get('/admin/', verifyToken, superAdminOrAdminMiddleware, getAllDresses);
 
 // Admin fetches stats of a specific lender
 router.get(
   '/admin/lender/:lenderId/stats',
   verifyToken,
-  adminMiddleware,
+  superAdminOrAdminMiddleware,
   getLenderStatsController
 );
 
@@ -51,12 +52,12 @@ router.get(
 // Dress by ID (admin or lender who owns it)
 router
   .route('/listings/:id')
-  .get(verifyToken, adminLenderMiddleware, getDressById)
+  .get(verifyToken, adminLenderSuperadminMiddleware, getDressById)
   .patch(
     verifyToken,
-    adminLenderMiddleware,
+    adminLenderSuperadminMiddleware,
     updateDress
   )
-  .delete(verifyToken, adminLenderMiddleware, deleteDress);
+  .delete(verifyToken, adminLenderSuperadminMiddleware, deleteDress);
 
 export default router;
