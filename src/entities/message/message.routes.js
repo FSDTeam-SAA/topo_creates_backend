@@ -10,7 +10,7 @@ import {
   markAsRead,
   updateChatRoomStatus,
 } from "./message.controller.js";
-import { verifyToken, adminMiddleware } from "../../core/middlewares/authMiddleware.js";
+import { verifyToken, superAdminOrAdminMiddleware } from "../../core/middlewares/authMiddleware.js";
 import { multerUpload } from "../../core/middlewares/multer.js";
 
 
@@ -21,12 +21,11 @@ const router = express.Router();
 
 router.get("/chatrooms", verifyToken, getUserChatRooms);
 
-router.get("/chatrooms/admin/all", verifyToken, adminMiddleware, getAllChatRoomsAdmin);
+router.get("/chatrooms/admin/all", verifyToken, superAdminOrAdminMiddleware, getAllChatRoomsAdmin);
 
-router.get("/chatrooms/admin/:roomId", verifyToken, adminMiddleware, getAllChatByRoomId);
+router.get("/chatrooms/admin/:roomId", verifyToken, superAdminOrAdminMiddleware, getAllChatByRoomId);
 
-router.put("/chatrooms/admin/:roomId/status", verifyToken, adminMiddleware, updateChatRoomStatus);
-
+router.put("/chatrooms/admin/:roomId/status", verifyToken, superAdminOrAdminMiddleware, updateChatRoomStatus);
 
 
 /* ---------------- MESSAGE ROUTES ---------------- */

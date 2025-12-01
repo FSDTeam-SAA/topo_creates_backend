@@ -41,7 +41,8 @@ export const loginUserService = async ({ email, password }) => {
 
   if (account) {
     if (account.role === "SUPER_ADMIN") accountType = "SUPER_ADMIN";
-    else accountType = "USER";
+    else if (account.role === "USER") accountType = "USER";
+    else accountType = "ADMIN";
   }
 
   // --- CHECK TEAM MODEL (ADMIN) ---
