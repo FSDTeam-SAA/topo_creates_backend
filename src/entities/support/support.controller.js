@@ -1,5 +1,3 @@
-
-
 import { generateResponse } from "../../lib/responseFormate.js";
 import { contactService, getAllContacts, getContactById, getContactStats, updateContact } from "./support.service.js";
 
@@ -7,9 +5,6 @@ import { contactService, getAllContacts, getContactById, getContactStats, update
 // 🔹 Lender-only contact (with form-data + file upload)
 export const createLenderContact = async (req, res) => {
   try {
-    if (req.user.role !== "LENDER") {
-      return generateResponse(res, 403, false, "Only lenders can access this route");
-    }
 
    const file = req.files && req.files.file ? req.files.file[0] : null;
 
@@ -56,9 +51,7 @@ export const createGeneralContact = async (req, res) => {
 // ---------------------- GET ALL CONTACTS ----------------------
 export const getAllContactsController = async (req, res) => {
   try {
-     if (req.user.role !== "ADMIN") {
-    return res.status(403).json({ message: "Forbidden: Admins only" });
-  }
+
     const { page = 1, limit = 10, search, issueType, userId, lender } = req.query;
 
     const filters = { page, limit, search, issueType, userId, lender };
@@ -105,15 +98,9 @@ export const updateContactController = async (req, res) => {
 };
 
 
-
-
 // 🔹 GET CONTACT STATS (Admin only)
 export const getContactsStats = async (req, res) => {
   try {
-    if (req.user.role !== "ADMIN") {
-      return generateResponse(res, 403, false, "Forbidden: Admins only");
-    }
-
     const result = await getContactStats();
 
     return generateResponse(res, 200, true, "Contact stats fetched successfully", result);
