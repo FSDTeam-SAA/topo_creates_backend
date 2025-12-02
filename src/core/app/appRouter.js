@@ -28,6 +28,7 @@ import supportRoutes from '../../entities/support/support.routes.js'
 import adminDispute from '../../entities/dispute/admin/dispute.routes.js';
 import overviewRoutes from '../../entities/lender/overview/overview.routes.js';
 import customerRoutes from '../../entities/admin/customer/customer.routes.js'
+import overviewAdminRoutes from '../../entities/admin/overview/overview.routes.js';
 
 
 const router = express.Router();
@@ -82,6 +83,7 @@ router.use('/v1/customer/bookings', customerBookingRoutes);
 // app.use('/api/webhooks', webhookRoutes);
 
 router.use('/v1/admin/customer', customerRoutes);
+router.use('/v1/admin/overview', overviewAdminRoutes);
 
 
 export default router;

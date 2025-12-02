@@ -71,6 +71,14 @@ export const getAllChatRoomsAdminService = async (page, limit) => {
       .skip(skip)
       .limit(Number(limit))
       .populate("participants", "firstName lastName email role")
+      .populate({
+        path: "bookingId",
+        populate: {
+          path: "masterdressId",  
+          model: "MasterDress",
+          select: "-__v" 
+        }
+      })
       .lean(),
 
     ChatRoom.countDocuments(),
