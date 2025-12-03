@@ -42,6 +42,7 @@ export const loginUserService = async ({ email, password }) => {
   if (account) {
     if (account.role === "SUPER_ADMIN") accountType = "SUPER_ADMIN";
     else if (account.role === "USER") accountType = "USER";
+    else if (account.role === "LENDER") accountType = "LENDER";
     else accountType = "ADMIN";
   }
 
@@ -87,7 +88,7 @@ export const loginUserService = async ({ email, password }) => {
   };
 
   // USER + SUPER_ADMIN RESPONSE FORMAT
-  if (accountType === "USER" || accountType === "SUPER_ADMIN") {
+  if (accountType === "USER" || accountType === "SUPER_ADMIN" || accountType === "LENDER") {
     responseUser.firstName = account.firstName;
     responseUser.lastName = account.lastName;
     responseUser.profileImage = account.profileImage || "";
