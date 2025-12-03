@@ -1,3 +1,4 @@
+import { createPaginationInfo } from "../../../lib/pagination.js";
 import User from "../../auth/auth.model.js";
 import { Booking } from "../../booking/booking.model.js";
 import { Dispute } from "../../dispute/dispute.model.js";
@@ -139,5 +140,185 @@ export const getRevenueTrendsService = async (year) => {
 };
 
 
+export const topLendersService = async (page, limit) => {
+
+  const lendersAgg = await Payment.aggregate([
+    {
+      $match: {
+        lenderId: { $ne: null },
+        type: "booking"
+      }
+    },
+    {
+      $group: {
+        _id: "$lenderId",
+        totalBookings: { $sum: 1 },
+        revenue: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "Paid"] }, "$amount", 0]
+          }
+        },
+        pendingOrCancel: {
+          $sum: {
+            $cond: [{ $ne: ["$status", "Paid"] }, 1, 0]
+          }
+        }
+      }
+    },
+    { $sort: { revenue: -1 } },
+
+    // Count documents BEFORE pagination
+    {
+      $facet: {
+        data: [
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+          {
+            $lookup: {
+              from: "users",
+              localField: "_id",
+              foreignField: "_id",
+              as: "lender"
+            }
+          },
+          { $unwind: "$lender" },
+          {
+            $project: {
+              _id: 0,
+              id: "$_id",
+              name: "$lender.fullName",
+              email: "$lender.email",
+              totalBookings: 1,
+              revenue: 1,
+              pendingOrCancel: 1
+            }
+          }
+        ],
+        totalCount: [
+          { $count: "count" }
+        ]
+      }
+    }
+  ]);
+
+  const lenders = lendersAgg[0].data;
+  const total = lendersAgg[0].totalCount[0]?.count || 0;
+
+  return {
+    lenders,
+    pagination: createPaginationInfo(page, limit, total)
+  };
+};
 
 
+
+export const topDressesService = async (page, limit) => {
+  const skip = (page - 1) * limit;
+
+  const aggregationPipeline = [
+    {
+      $match: {
+        type: "booking",
+        lenderId: { $ne: null },
+        bookingId: { $ne: null }
+      }
+    },
+
+    // Get booking details
+    {
+      $lookup: {
+        from: "bookings",
+        localField: "bookingId",
+        foreignField: "_id",
+        as: "booking"
+      }
+    },
+    { $unwind: "$booking" },
+
+    // IMPORTANT FIX — match correct field
+    {
+      $group: {
+        _id: {
+          masterDressId: "$booking.masterdressId",
+          lenderId: "$lenderId"
+        },
+        totalBookings: { $sum: 1 },
+        revenue: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "Paid"] }, "$amount", 0]
+          }
+        },
+        pendingOrCancel: {
+          $sum: {
+            $cond: [{ $ne: ["$status", "Paid"] }, 1, 0]
+          }
+        }
+      }
+    },
+
+    // 🔥 SORT BY totalBookings (DESCENDING)
+    { $sort: { totalBookings: -1 } },
+
+    // Join MasterDress
+    {
+      $lookup: {
+        from: "masterdresses",
+        localField: "_id.masterDressId",
+        foreignField: "_id",
+        as: "dress"
+      }
+    },
+    { $unwind: "$dress" },
+
+    // Join lender
+    {
+      $lookup: {
+        from: "users",
+        localField: "_id.lenderId",
+        foreignField: "_id",
+        as: "lender"
+      }
+    },
+    { $unwind: "$lender" },
+
+    {
+      $project: {
+        _id: 0,
+        masterDressDbId: "$_id.masterDressId",
+        masterDressId: "$dress.masterDressId",
+        dressName: "$dress.dressName",
+
+        lenderId: "$_id.lenderId",
+        lenderName: "$lender.fullName",
+        lenderEmail: "$lender.email",
+
+        totalBookings: 1,
+        revenue: 1,
+        pendingOrCancel: 1
+      }
+    }
+  ];
+
+  // ---------------------
+  // COUNT TOTAL (WITHOUT PAGINATION)
+  // ---------------------
+  const totalDataAgg = await Payment.aggregate([...aggregationPipeline]);
+  const totalData = totalDataAgg.length;
+
+  // ---------------------
+  // APPLY PAGINATION
+  // ---------------------
+  const paginatedData = await Payment.aggregate([
+    ...aggregationPipeline,
+    { $skip: skip },
+    { $limit: limit }
+  ]);
+
+  // Pagination object
+  const paginationInfo = createPaginationInfo(page, limit, totalData);
+
+  return {
+    results: paginatedData,
+    paginationInfo
+  };
+};
