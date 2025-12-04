@@ -254,57 +254,74 @@ export const createManualBookingService = async ({ userId, body }) => {
   session.startTransaction();
 
   try {
-     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16',
-});
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+    });
+
     const {
       listingId,
       rentalStartDate,
       rentalEndDate,
       rentalDurationDays,
       size,
-   
     } = body;
 
+    // Validate listing ID
     if (!mongoose.Types.ObjectId.isValid(listingId)) {
-      throw new Error('Invalid listing ID.');
+      throw new Error("Invalid listing ID.");
     }
 
-    // --- Validate listing ---
     const listing = await Listing.findById(listingId).session(session);
-    if (!listing || !listing.isActive || listing.approvalStatus !== 'approved') {
-      throw new Error('Listing not found, inactive, or not approved.');
+    if (!listing || !listing.isActive || listing.approvalStatus !== "approved") {
+      throw new Error("Listing not found, inactive, or not approved.");
     }
 
-    // --- Fetch master dress ---
     const masterDress = await MasterDress.findOne({ dressName: listing.dressName }).session(session);
-    if (!masterDress) throw new Error('Master dress not found.');
+    if (!masterDress) throw new Error("Master dress not found.");
 
     const totalAmount = masterDress.basePrice || 0;
 
-    // Rental price according to days
+    // Rental price
     let rentalFee = 0;
     if (rentalDurationDays === 4) rentalFee = listing.rentalPrice.fourDays;
     else if (rentalDurationDays === 8) rentalFee = listing.rentalPrice.eightDays;
-    else throw new Error('Invalid rental duration, must be 4 or 8 days.');
+    else throw new Error("Invalid rental duration, must be 4 or 8 days.");
 
-    // --- Check lender payment method ---
-    const lender = await mongoose.model('User').findById(userId).session(session);
+    const lender = await mongoose.model("User").findById(userId).session(session);
     if (!lender?.stripeCustomerId || !lender?.defaultPaymentMethodId) {
-      throw new Error('Please add a payment method before booking.');
+      throw new Error("Please add a payment method before booking.");
     }
 
-    // --- Charge via Stripe ---
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(totalAmount * 100), // Stripe expects cents
-      currency: 'aud',
-      customer: lender.stripeCustomerId,
-      payment_method: lender.defaultPaymentMethodId,
-      off_session: true,
-      confirm: true
-    });
+    let paymentIntent;
 
-    // --- Create booking ---
+    try {
+      // Try auto-charge
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(totalAmount * 100),
+        currency: "aud",
+        customer: lender.stripeCustomerId,
+        payment_method: lender.defaultPaymentMethodId,
+        off_session: true,
+        confirm: true,
+      });
+    } catch (stripeErr) {
+      // Handle Stripe-specific errors clearly
+      if (stripeErr.type === "StripeCardError") {
+        throw new Error(stripeErr.message || "Your card was declined.");
+      }
+
+      if (stripeErr.type === "StripeAuthenticationError") {
+        throw new Error("Your bank requires authentication. Please update your payment method.");
+      }
+
+      if (stripeErr.type === "StripeInvalidRequestError") {
+        throw new Error("Invalid payment request. Please contact support.");
+      }
+
+      throw new Error("Payment failed. Please try again with a different card.");
+    }
+
+    // Create booking (only if payment success)
     const bookingData = {
       customer: userId,
       masterdressId: masterDress._id,
@@ -317,8 +334,10 @@ export const createManualBookingService = async ({ userId, body }) => {
       rentalFee,
       totalAmount,
       stripePaymentIntentId: paymentIntent.id,
-      stripeChargeId: paymentIntent.charges.data[0].id,
-      paymentStatus: 'Paid'
+      paymentStatus: "Paid",
+      deliveryStatus: "Delivered",
+      deliveryMethod: "Manual booking",
+      isManualBooking: true
     };
 
     const booking = new Booking(bookingData);
@@ -332,6 +351,8 @@ export const createManualBookingService = async ({ userId, body }) => {
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    throw err;
+
+    
+    throw new Error(err.message || "Something went wrong while creating booking.");
   }
 };

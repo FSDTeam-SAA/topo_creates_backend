@@ -1,11 +1,11 @@
 import express from "express";
 import { approveReview, createReview, declineReview, getAllPendingReviews, getAllReviews, getReviewsCount } from "./review.controller.js";
-import { adminMiddleware, userAdminLenderMiddleware, userMiddleware, verifyToken } from "../../core/middlewares/authMiddleware.js";
+import {userAdminLenderMiddleware,verifyToken } from "../../core/middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 //user
-router.post("/create", verifyToken, userMiddleware, createReview);
+router.post("/create", verifyToken, userAdminLenderMiddleware, createReview);
 router.get("/get-all-reviews", getAllReviews);
 
 //admin

@@ -96,9 +96,7 @@ export const createManualBookingController = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    if (!req.user.isManualBooking) {
-      return generateResponse(res, 403, false, 'Not authorized for manual booking.');
-    }
+   
 
     const booking = await createManualBookingService({ userId, body: req.body });
 
