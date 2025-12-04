@@ -25,9 +25,8 @@ export const getAllCustomersController = async (req, res) => {
 export const getCustomerByIdController = async (req, res) => {
   try {
     const customerId = req.params.id;
-    const { page = 1, limit = 10 } = req.query;
 
-    const data = await getCustomerByIdService(customerId, page, limit);
+    const data = await getCustomerByIdService(customerId);
 
     return generateResponse(res, 200, true, "Customer details fetched", data);
   } catch (error) {

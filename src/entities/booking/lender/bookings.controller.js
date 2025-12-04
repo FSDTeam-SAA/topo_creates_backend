@@ -1,4 +1,5 @@
-import { acceptOrRejectBookingService, getAllocatedBookingsForLenderService, getUpcomingBookingsForLenderService } from "./booking.service.js";
+import { generateResponse } from "../../../lib/responseFormate.js";
+import { acceptOrRejectBookingService, createManualBookingService, getAllocatedBookingsForLenderService, getUpcomingBookingsForLenderService } from "./booking.service.js";
 
 export const getAllocatedBookingsForLenderController = async (req, res) => {
   try {
@@ -84,5 +85,25 @@ export const getUpcomingBookingsForLenderController = async (req, res) => {
       success: false,
       message: err.message
     });
+  }
+};
+
+
+// manual booking
+
+
+export const createManualBookingController = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+   
+
+    const booking = await createManualBookingService({ userId, body: req.body });
+
+    generateResponse(res, 201, true, 'Manual booking created successfully', booking);
+  } catch (err) {
+    console.error(err);
+    // If Stripe fails, err.message may include Stripe-specific info
+    generateResponse(res, 400, false, err.message || 'Failed to create manual booking');
   }
 };

@@ -28,7 +28,7 @@ const UserSchema = new mongoose.Schema(
     role: {
       type: String,
       default: RoleType.USER,
-      enum: [RoleType.USER, RoleType.ADMIN, RoleType.LENDER, 'APPLICANT']
+      enum: [RoleType.USER, RoleType.ADMIN, RoleType.LENDER, RoleType.SUPER_ADMIN, 'APPLICANT']
     },
     bio: { type: String, default: '' },
 
@@ -104,7 +104,7 @@ const UserSchema = new mongoose.Schema(
       
     firstBookingDiscountUsed: { type: Boolean, default: false },
     spent300DiscountUsed: { type: Boolean, default: false },
-   spent600DiscountUsed: { type: Boolean, default: false },
+    spent600DiscountUsed: { type: Boolean, default: false },
 
     //Adress fro lenders from map
 
@@ -123,11 +123,9 @@ const UserSchema = new mongoose.Schema(
     defaultPaymentMethodId: { type: String, default: null },
 
     stripeCustomerId: { type: String, default: null },
-defaultPaymentMethodId: { type: String, default: null },
-
+    defaultPaymentMethodId: { type: String, default: null },
 
     // onboarding lender relarted fields
-
     stripeAccountId: {
       type: String,
       default: null

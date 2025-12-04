@@ -5,7 +5,7 @@ import { getLenderOverviewService, getRentalCalendarService } from "./overview.s
 export const getLenderOverview = async (req, res) => {
   try {
     const lenderId = req.user._id;
-    const { period = "monthly" } = req.query; // weekly | monthly | yearly
+    const { period = "monthly" } = req.query; 
 
     const data = await getLenderOverviewService(lenderId, period);
 
@@ -24,7 +24,7 @@ export const getRentalCalendar = async (req, res) => {
     const now = new Date();
 
     // Default month/year
-    if (!month) month = now.toLocaleString("en-US", { month: "long" }); // "November"
+    if (!month) month = now.toLocaleString("en-US", { month: "long" }); 
     if (!year) year = now.getFullYear();
 
     const data = await getRentalCalendarService({

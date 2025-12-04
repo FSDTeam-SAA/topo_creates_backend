@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import { Booking } from "../booking.model.js";
 import Stripe from "stripe";
+import Listing from "../../lender/Listings/listings.model.js";
+import MasterDress from "../../admin/Lisitngs/ReviewandMain Site Listing/masterDressModel.js";
 
 export const getAllocatedBookingsForLenderService = async (lenderId, query) => {
   const page = parseInt(query.page, 10) || 1;
@@ -246,3 +248,111 @@ export const acceptOrRejectBookingService = async ({ bookingId, lenderId, action
   }
 };
 
+
+export const createManualBookingService = async ({ userId, body }) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+    });
+
+    const {
+      listingId,
+      rentalStartDate,
+      rentalEndDate,
+      rentalDurationDays,
+      size,
+    } = body;
+
+    // Validate listing ID
+    if (!mongoose.Types.ObjectId.isValid(listingId)) {
+      throw new Error("Invalid listing ID.");
+    }
+
+    const listing = await Listing.findById(listingId).session(session);
+    if (!listing || !listing.isActive || listing.approvalStatus !== "approved") {
+      throw new Error("Listing not found, inactive, or not approved.");
+    }
+
+    const masterDress = await MasterDress.findOne({ dressName: listing.dressName }).session(session);
+    if (!masterDress) throw new Error("Master dress not found.");
+
+    const totalAmount = masterDress.basePrice || 0;
+
+    // Rental price
+    let rentalFee = 0;
+    if (rentalDurationDays === 4) rentalFee = listing.rentalPrice.fourDays;
+    else if (rentalDurationDays === 8) rentalFee = listing.rentalPrice.eightDays;
+    else throw new Error("Invalid rental duration, must be 4 or 8 days.");
+
+    const lender = await mongoose.model("User").findById(userId).session(session);
+    if (!lender?.stripeCustomerId || !lender?.defaultPaymentMethodId) {
+      throw new Error("Please add a payment method before booking.");
+    }
+
+    let paymentIntent;
+
+    try {
+      // Try auto-charge
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(totalAmount * 100),
+        currency: "aud",
+        customer: lender.stripeCustomerId,
+        payment_method: lender.defaultPaymentMethodId,
+        off_session: true,
+        confirm: true,
+      });
+    } catch (stripeErr) {
+      // Handle Stripe-specific errors clearly
+      if (stripeErr.type === "StripeCardError") {
+        throw new Error(stripeErr.message || "Your card was declined.");
+      }
+
+      if (stripeErr.type === "StripeAuthenticationError") {
+        throw new Error("Your bank requires authentication. Please update your payment method.");
+      }
+
+      if (stripeErr.type === "StripeInvalidRequestError") {
+        throw new Error("Invalid payment request. Please contact support.");
+      }
+
+      throw new Error("Payment failed. Please try again with a different card.");
+    }
+
+    // Create booking (only if payment success)
+    const bookingData = {
+      customer: userId,
+      masterdressId: masterDress._id,
+      dressName: listing.dressName,
+      listing: listing._id,
+      rentalStartDate,
+      rentalEndDate,
+      rentalDurationDays,
+      size,
+      rentalFee,
+      totalAmount,
+      stripePaymentIntentId: paymentIntent.id,
+      paymentStatus: "Paid",
+      deliveryStatus: "Delivered",
+      deliveryMethod: "Manual booking",
+      isManualBooking: true
+    };
+
+    const booking = new Booking(bookingData);
+    await booking.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return booking;
+
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+
+    
+    throw new Error(err.message || "Something went wrong while creating booking.");
+  }
+};

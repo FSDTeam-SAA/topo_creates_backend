@@ -7,13 +7,20 @@ import { cloudinaryUpload } from "../../lib/cloudinaryUpload.js";
 export const getUserChatRoomsService = async (userId, page, limit) => {
   const skip = (page - 1) * limit;
 
-  // Find chatrooms where user is a participant
   const [rooms, total] = await Promise.all([
     ChatRoom.find({ participants: userId })
-      .sort({ lastMessageAt: -1 }) 
+      .sort({ lastMessageAt: -1 })
       .skip(skip)
       .limit(Number(limit))
-      .populate("participants", "firstName lastName email role") 
+      .populate("participants", "firstName lastName email role")
+      .populate({
+        path: "bookingId",
+        populate: {
+          path: "masterdressId",  
+          model: "MasterDress",
+          select: "-__v" 
+        }
+      })
       .lean(),
 
     ChatRoom.countDocuments({ participants: userId }),
@@ -64,6 +71,14 @@ export const getAllChatRoomsAdminService = async (page, limit) => {
       .skip(skip)
       .limit(Number(limit))
       .populate("participants", "firstName lastName email role")
+      .populate({
+        path: "bookingId",
+        populate: {
+          path: "masterdressId",  
+          model: "MasterDress",
+          select: "-__v" 
+        }
+      })
       .lean(),
 
     ChatRoom.countDocuments(),
