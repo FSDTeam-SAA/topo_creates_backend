@@ -122,8 +122,7 @@ const UserSchema = new mongoose.Schema(
     stripeCustomerId: { type: String, default: null },
     defaultPaymentMethodId: { type: String, default: null },
 
-    stripeCustomerId: { type: String, default: null },
-    defaultPaymentMethodId: { type: String, default: null },
+   
 
     // onboarding lender relarted fields
     stripeAccountId: {

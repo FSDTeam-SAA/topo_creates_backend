@@ -20,6 +20,7 @@ const router = express.Router();
 
 
 router.post("/create", verifyToken, userMiddleware, createBookingController);
+router.post('/manual', verifyToken, adminLenderMiddleware, createManualBookingController);
 router.post('/accept-reject',verifyToken, lenderMiddleware, acceptOrRejectBookingController);
 router.get("/all", verifyToken, userAdminLenderSuperAdminMiddleware, getAllBookingsController);
 router.get('/stats',getLenderBookingStatsController)

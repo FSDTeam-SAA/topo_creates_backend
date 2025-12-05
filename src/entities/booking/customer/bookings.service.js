@@ -55,7 +55,7 @@ export const createBookingService = async ({ userId, role, body }) => {
 let allocatedLender = null;
 
 if (deliveryMethod === 'Pickup' && selectedLender) {
-  const lender = selectedLender[0]; // { _id, email, location, distance }
+  const lender = selectedLender[0];
   allocatedLender = {
     lenderId: lender._id,
     email: lender.email,

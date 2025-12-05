@@ -5,8 +5,8 @@ export const createReviewService = async (body) => {
 
     const review = new Review(body);
 
-    await review.save();
-    return
+    const savedReview = await review.save();
+    return savedReview;
 }
 
 export const getAllReviewsService = async (page, limit, skip) => {
