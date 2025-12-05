@@ -148,7 +148,7 @@ const userAdminLenderSuperAdminMiddleware = (req, res, next) => {
   const { role } = req.user || {};
 
   if (![RoleType.USER, RoleType.ADMIN, RoleType.LENDER, RoleType.SUPER_ADMIN].includes(role))
- {
+  {
     return generateResponse(res, 403, false, 'User, Admin, Lender or Super Admin access only', null);
   }
   next();
