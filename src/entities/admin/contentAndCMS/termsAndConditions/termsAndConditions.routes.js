@@ -6,7 +6,7 @@ import {
   updateTerms,
   deleteTerms,
 } from "./termsAndConditions.controller.js";
-import { adminMiddleware, verifyToken } from "../../../../core/middlewares/authMiddleware.js";
+import { superAdminOrAdminMiddleware, verifyToken } from "../../../../core/middlewares/authMiddleware.js";
 
 
 const router = express.Router();
@@ -14,15 +14,15 @@ const router = express.Router();
 
 router
   .route("/")
-  .post(verifyToken, adminMiddleware, createTerms)
+  .post(verifyToken, superAdminOrAdminMiddleware, createTerms)
   .get(getAllTerms);
 
 
 router
   .route("/:id")
   .get(getTermsById)
-  .put(verifyToken, adminMiddleware, updateTerms)
-  .delete(verifyToken, adminMiddleware, deleteTerms);
+  .put(verifyToken, superAdminOrAdminMiddleware, updateTerms)
+  .delete(verifyToken, superAdminOrAdminMiddleware, deleteTerms);
 
-
+  
 export default router;

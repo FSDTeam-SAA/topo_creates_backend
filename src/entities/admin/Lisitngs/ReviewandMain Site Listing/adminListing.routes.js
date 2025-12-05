@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyToken, adminMiddleware, userAdminLenderMiddleware } from '../../../../core/middlewares/authMiddleware.js';
+import { verifyToken, superAdminOrAdminMiddleware } from '../../../../core/middlewares/authMiddleware.js';
 import {
   getAllApprovedDresses,
   adminUpdateAnyDress,
@@ -23,14 +23,14 @@ router.get('/lenders/nearby/:dressId', getNearestLendersByDressId);
 router.patch(
   '/:id',
   verifyToken,
-  adminMiddleware,
-
+  superAdminOrAdminMiddleware,
   adminUpdateAnyDress
 );
+
 router.patch(
   '/master/:masterDressId',
   verifyToken,
-  adminMiddleware,
+  superAdminOrAdminMiddleware,
      multerUpload([
     { name: "mediaUpload", maxCount: 100 },
     { name: "thumbnail", maxCount: 1 },
@@ -41,9 +41,10 @@ router.patch(
 router.get(
   '/listings/stats',
   verifyToken,
-  adminMiddleware,
+  superAdminOrAdminMiddleware,
   getApprovalStatsController
 );
+
 router.get('/dress/:id',getDressByIdController)
 
 export default router;
