@@ -13,14 +13,14 @@ import {
 
 } from "./bookings.controller.js";
 import { verifyToken, userMiddleware, lenderMiddleware, userAdminLenderSuperAdminMiddleware, adminLenderSuperadminMiddleware } from "../../../core/middlewares/authMiddleware.js"; 
-import { acceptOrRejectBookingController, getAllocatedBookingsForLenderController, getUpcomingBookingsForLenderController } from "../lender/bookings.controller.js";
+import { acceptOrRejectBookingController, createManualBookingController, getAllocatedBookingsForLenderController, getUpcomingBookingsForLenderController } from "../lender/bookings.controller.js";
 
 
 const router = express.Router();
 
 
 router.post("/create", verifyToken, userMiddleware, createBookingController);
-router.post('/manual', verifyToken, adminLenderMiddleware, createManualBookingController);
+router.post('/manual', verifyToken, adminLenderSuperadminMiddleware, createManualBookingController);
 router.post('/accept-reject',verifyToken, lenderMiddleware, acceptOrRejectBookingController);
 router.get("/all", verifyToken, userAdminLenderSuperAdminMiddleware, getAllBookingsController);
 router.get('/stats',getLenderBookingStatsController)
