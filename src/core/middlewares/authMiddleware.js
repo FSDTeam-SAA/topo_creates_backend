@@ -3,37 +3,56 @@ import {accessTokenSecrete} from '../../core/config/config.js';
 import RoleType from '../../lib/types.js';
 import User from '../../entities/auth/auth.model.js';
 import { generateResponse } from '../../lib/responseFormate.js';
+import Team from '../../entities/admin/team/team.model.js';
 
 
 export const verifyToken = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return generateResponse(res, 401, false, 'No token, auth denied', null);
+  const token = req.headers.authorization?.split(" ")[1];
 
+  if (!token) {
+    return generateResponse(res, 401, false, "No token, auth denied", null);
+  }
 
   try {
     const decoded = jwt.verify(token, accessTokenSecrete);
-    const user = await User.findById(decoded._id).select('-password -createdAt -updatedAt -__v');
-    req.user = user;
-    next();
-  }
 
+    let account;
+
+    account = await User.findById(decoded._id)
+      .select("-password -createdAt -updatedAt -__v");
+
+    if (!account) {
+      account = await Team.findById(decoded._id)
+        .select("-password -createdAt -updatedAt -__v");
+    }
+
+    if (!account) {
+      return generateResponse(res, 401, false, "Invalid token user", null);
+    }
+
+    // Attach final user info to req.user
+    req.user = {
+      _id: account._id,
+      email: account.email,
+      role: decoded.role,               
+      permissions: decoded.permissions || [],
+      ...account.toObject()            
+    };
+
+    return next();
+  } 
   catch (err) {
     if (err.name === "TokenExpiredError") {
-  return generateResponse(res, 401, false, 'Token expired', null);
-}
-
-
-
+      return generateResponse(res, 401, false, "Token expired", null);
+    } 
     else if (err.name === "JsonWebTokenError") {
-      return generateResponse(res, 401, false, 'Token is not valid', null);
-    }
-
+      return generateResponse(res, 401, false, "Token is not valid", null);
+    } 
     else if (err.name === "NotBeforeError") {
-      return generateResponse(res, 401, false, 'Token not active', null);
-    }
-
+      return generateResponse(res, 401, false, "Token not active", null);
+    } 
     else {
-      next(err)
+      return next(err);
     }
   }
 };
