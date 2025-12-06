@@ -9,8 +9,6 @@ import MasterDress from "../../admin/Lisitngs/ReviewandMain Site Listing/masterD
 import { ChatRoom } from "../../message/chatRoom.model.js";
 
 
-
-
 export const createBookingService = async ({ userId, role, body }) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -36,9 +34,12 @@ export const createBookingService = async ({ userId, role, body }) => {
     // --- Validate user ---
     const User = mongoose.model('User');
     const user = await User.findById(userId).session(session);
+
     if (!user || (role === 'USER' && !user.kycVerified)) {
       throw new Error('User KYC not verified or user not found.');
     }
+
+   
 
     // --- Fetch Master Dress ---
     if (!mongoose.Types.ObjectId.isValid(masterdressId)) throw new Error('Invalid MasterDress ID');
