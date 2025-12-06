@@ -1,17 +1,17 @@
 import express from "express";
 import { approveReview, createReview, declineReview, getAllPendingReviews, getAllReviews, getReviewsCount } from "./review.controller.js";
-import {userAdminLenderMiddleware,verifyToken } from "../../core/middlewares/authMiddleware.js";
+import { userAdminLenderSuperAdminMiddleware,verifyToken } from "../../core/middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 //user
-router.post("/create", verifyToken, userAdminLenderMiddleware, createReview);
+router.post("/create", verifyToken, userAdminLenderSuperAdminMiddleware, createReview);
 router.get("/get-all-reviews", getAllReviews);
 
 //admin
-router.get("/get-reviews-count", verifyToken, userAdminLenderMiddleware, getReviewsCount);
-router.get("/get-all-pending-reviews", verifyToken, userAdminLenderMiddleware, getAllPendingReviews);
-router.patch("/update-approve-review/:id", verifyToken, userAdminLenderMiddleware, approveReview);
-router.delete("/delete-decline-review/:id", verifyToken, userAdminLenderMiddleware, declineReview);
+router.get("/get-reviews-count", verifyToken, userAdminLenderSuperAdminMiddleware, getReviewsCount);
+router.get("/get-all-pending-reviews", verifyToken, userAdminLenderSuperAdminMiddleware, getAllPendingReviews);
+router.patch("/update-approve-review/:id", verifyToken, userAdminLenderSuperAdminMiddleware, approveReview);
+router.delete("/delete-decline-review/:id", verifyToken, userAdminLenderSuperAdminMiddleware, declineReview);
 
 export default router;
