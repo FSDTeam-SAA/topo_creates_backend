@@ -96,8 +96,6 @@ export const createManualBookingController = async (req, res) => {
   try {
     const userId = req.user._id;
 
-   
-
     const booking = await createManualBookingService({ userId, body: req.body });
 
     generateResponse(res, 201, true, 'Manual booking created successfully', booking);
