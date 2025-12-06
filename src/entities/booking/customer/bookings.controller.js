@@ -14,7 +14,7 @@ export const createBookingController = async (req, res) => {
     });
 
   
-    generateResponse(res, 201, true, "Booking created successfully", booking);
+    generateResponse(res, 201, true, "Booking created successfully for the user", booking);
   } catch (err) {
     console.error(err);
     generateResponse(res, 400, false, err.message || "Failed to create booking");
