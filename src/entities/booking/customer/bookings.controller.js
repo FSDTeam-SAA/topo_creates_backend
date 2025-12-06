@@ -4,7 +4,7 @@ import { createBookingService, deleteBookingService, getAllBookingsService, getB
 
 export const createBookingController = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const role = req.user.role; 
 
     const booking = await createBookingService({
