@@ -1,7 +1,7 @@
 import express from "express";
-
-import { adminLenderMiddleware, adminMiddleware, lenderMiddleware, verifyToken } from "../../../core/middlewares/authMiddleware.js";
+import { lenderMiddleware, superAdminOrAdminMiddleware, verifyToken } from "../../../core/middlewares/authMiddleware.js";
 import { createPayoutController, getAllPayoutsController, getPayoutByIdController, getPayoutsByLenderController } from "./payOut.controller.js";
+
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ const router = express.Router();
 
 // 1. Lender creates a payout request
 // POST /api/payouts
-router.post("/request", verifyToken,lenderMiddleware, createPayoutController);
+router.post("/request", verifyToken, lenderMiddleware, createPayoutController);
 
 // 2. Lender views all their payouts
 // GET /api/payouts/my
@@ -31,11 +31,10 @@ router.get("/my/:id", verifyToken, getPayoutByIdController);
 
 // 4. Admin views all payouts
 // GET /api/payouts
-router.get("/all-payouts", verifyToken, adminMiddleware, getAllPayoutsController);
+router.get("/all-payouts", verifyToken, superAdminOrAdminMiddleware, getAllPayoutsController);
 
 // 5. Admin views payout details
 // GET /api/payouts/:id
-router.get("/:id", verifyToken,adminLenderMiddleware, getPayoutByIdController);
-
+router.get("/:id", verifyToken, superAdminOrAdminMiddleware, getPayoutByIdController);
 
 export default router;

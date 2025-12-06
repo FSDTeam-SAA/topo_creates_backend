@@ -9,7 +9,6 @@ import {
   updateDress
 } from './listings.controller.js';
 import {
-  adminLenderMiddleware,
   adminLenderSuperadminMiddleware,
   lenderMiddleware,
   superAdminOrAdminMiddleware,

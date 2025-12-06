@@ -1,13 +1,10 @@
 import mongoose from "mongoose";
 import { Booking } from "../../booking/booking.model.js";
 import Payment from "./payment.model.js";
-
 import Stripe from "stripe";
 
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-
-
 
 
 export const createBookingPaymentService = async ({ bookingId, customerId }) => {

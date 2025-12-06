@@ -1,6 +1,7 @@
 import { generateResponse } from '../../../lib/responseFormate.js';
 import { createBookingService, deleteBookingService, getAllBookingsService, getBookingByIdService, getLenderBookingStatsService, getMasterDressByNameService, getPayoutByBookingIdService, getUserBookingsService, updateBookingService} from '../customer/bookings.service.js';
 
+
 export const createBookingController = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -19,9 +20,6 @@ export const createBookingController = async (req, res) => {
     generateResponse(res, 400, false, err.message || "Failed to create booking");
   }
 };
-
-
-//get all bookings 
 
 // GET ALL
 export const getAllBookingsController = async (req, res) => {
