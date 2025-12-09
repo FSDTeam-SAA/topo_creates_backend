@@ -1,26 +1,23 @@
 import mongoose, { Schema } from 'mongoose';
 
+const FileSchema = new Schema({
+  filename: String,
+  url: String,
+}, { _id: false });
+
+
 const bannerSchema = new Schema(
     {
-        bannerId: {
-            type: String,
-            required: true,
-            unique: true,
-            trim: true
-        },
         title: {
             type: String,
             required: true,
             trim: true
         },
-        imageUrl: {
-            type: String,
-            required: true
-        },
+        image: [FileSchema],
         status: {
             type: String,
-            enum: ['active', 'draft'],
-            required: true
+            enum: ['active', 'inactive','draft'],
+            default: 'active',
         }
     },
     {

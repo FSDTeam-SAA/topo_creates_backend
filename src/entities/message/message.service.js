@@ -1,79 +1,483 @@
-import { Types } from "mongoose";
-import { Booking } from "../booking/booking.model.js";
-import Message from "./message.model.js";
-import { io } from "../../app.js";
+import { Message } from "./message.model.js";
+import { io } from "../../app.js"; 
+import { ChatRoom } from "./chatRoom.model.js";
+import { cloudinaryUpload } from "../../lib/cloudinaryUpload.js";
 
 
-export const sendMessageService = async (booking,message) => {
-    //console.log("Booking ID:", message);
-    
-    const bookingDoc = await Booking.findById({_id: new Types.ObjectId(booking)});
-    if (!bookingDoc) {
-        throw new Error("Booking not found");
-    }
+export const getUserChatRoomsService = async (userId, page, limit) => {
+  const skip = (page - 1) * limit;
 
-    //console.log("Booking Document:", bookingDoc);
+  const [rooms, total] = await Promise.all([
+    ChatRoom.find({ participants: userId })
+      .sort({ lastMessageAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .populate("participants", "firstName lastName email role")
+      .populate({
+        path: "bookingId",
+        populate: {
+          path: "masterdressId",  
+          model: "MasterDress",
+          select: "-__v" 
+        }
+      })
+      .lean(),
 
-    if(bookingDoc.customer.toString() !== message.sender.toString() && bookingDoc.lender.toString() !== message.sender.toString()){
-        throw new Error("You are not authorized to send a message for this booking");
-    }
-    let newMessage = await Message.findOne({ bookingId:booking });
+    ChatRoom.countDocuments({ participants: userId }),
+  ]);
 
-    if (!newMessage) {
-         newMessage = new Message({
-            bookingId: booking,
-            messages: []
-        });
-        await newMessage.save();
-    }
-    else
-    {
-        const updateMessage = await Message.findByIdAndUpdate(
-            newMessage._id,
-            { $push: { messages: message } },
-            { new: true, upsert: true }
-        );
-
-        // socket.io emit
-        io.to(`room-${booking}`).emit("message", {
-            message: message,
-            sender: message.sender,
-            bookingId: booking,
-            createdAt: new Date(),
-        });
-        
-        return updateMessage;
-    }
+  return {
+    data: rooms,
+    pagination: {
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+      limit: Number(limit),
+    },
+  };
 };
 
 
-export const getMessagesByBookingIdService = async (bookingId,userId) => {
+export const getAllChatByRoomIdService = async (roomId, page, limit) => {
+  const skip = (page - 1) * limit;
 
-    let messages = await Message.findOne({ bookingId: bookingId })
-    .populate("messages.sender", "firstName lastName email role")
-
-    let updated = false;
-    messages.messages.forEach(msg => {
-      if (!msg.read && msg.sender._id.toString() !== userId.toString()) {
-        msg.read = true;
-        updated = true;
-      }
-    });
-
-    if (updated) await messages.save();
-  
-    return {
-        messages,
-    };
-};
-
-
-export const getAllConversationsService = async () => {
-    const messages = await Message.find({})
-      .populate("bookingId")
-      .populate("messages.sender", "firstName lastName email role")
+  const [messages, total] = await Promise.all([
+    Message.find({ chatRoom: roomId })
       .sort({ createdAt: -1 })
-      .lean();
-      
-    return messages;
-}
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate("sender", "firstName lastName profileImage role"),
+    Message.countDocuments({ chatRoom: roomId }),
+  ]);
+
+  return {
+    messages,
+    pagination: {
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      pages: Math.ceil(total / limit),
+    },
+  };
+};
+
+
+export const getAllChatRoomsAdminService = async (page, limit) => {
+  const skip = (page - 1) * limit;
+
+  const [rooms, total] = await Promise.all([
+    ChatRoom.find()
+      .sort({ lastMessageAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .populate("participants", "firstName lastName email role")
+      .populate({
+        path: "bookingId",
+        populate: {
+          path: "masterdressId",  
+          model: "MasterDress",
+          select: "-__v" 
+        }
+      })
+      .lean(),
+
+    ChatRoom.countDocuments(),
+  ]);
+
+  return {
+    data: rooms,
+    pagination: {
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+      limit: Number(limit),
+    },
+  };
+};
+
+
+export const sendMessageService = async (roomId, { sender, message, files }) => {
+  const chatRoom = await ChatRoom.findById(roomId).populate("bookingId");
+  if (!chatRoom) throw new Error("Chat room not found");
+
+  const booking = chatRoom.bookingId;
+  if (!booking) throw new Error("Associated booking not found");
+
+  // Authorization: only participants or admin can send
+  if (
+    booking.customer.toString() !== sender.toString() &&
+    booking.lender.toString() !== sender.toString()
+  ) {
+    throw new Error("You are not authorized to send a message in this room");
+  }
+
+  if (chatRoom.status === "closed") {
+    throw new Error("This conversation has been closed by the admin. You cannot send new messages.");
+  }
+
+  // Upload attachments
+  let attachments = [];
+  for (const file of files) {
+    try {
+      const upload = await cloudinaryUpload(file.path, file.filename, "chat-attachments");
+      if (upload?.secure_url) {
+        attachments.push({
+          url: upload.secure_url,
+          type: file.mimetype.startsWith("image")
+            ? "image"
+            : file.mimetype.startsWith("video")
+            ? "video"
+            : "file",
+          fileName: file.originalname,
+          size: file.size,
+          mimeType: file.mimetype,
+        });
+      }
+    } catch (err) {
+      console.error("Attachment upload failed:", err.message);
+    }
+  }
+
+  // Save message
+  const newMessage = await Message.create({
+    chatRoom: chatRoom._id,
+    sender,
+    message,
+    attachments,
+  });
+
+  const newMessagePopulated = await newMessage
+    .populate("sender", "firstName lastName profileImage role")
+
+  // Update chatRoom metadata
+  chatRoom.lastMessage = message || (attachments.length ? "📎 Attachment" : "");
+  chatRoom.lastMessageAt = new Date();
+  await chatRoom.save();
+
+  // Emit via socket
+  io.to(`room-${chatRoom._id}`).emit("message:new", newMessagePopulated);
+
+  return newMessage;
+};
+
+
+export const getMessagesByRoomService = async (roomId, page, limit) => {
+  const skip = (page - 1) * limit;
+
+  const [messages, total] = await Promise.all([
+    Message.find({ chatRoom: roomId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate("sender", "firstName lastName profileImage role"),
+    Message.countDocuments({ chatRoom: roomId }),
+  ]);
+
+  return {
+    messages,
+    pagination: {
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      pages: Math.ceil(total / limit),
+    },
+  };
+};
+
+
+export const editMessageService = async (messageId, userId, newText) => {
+  const msg = await Message.findById(messageId);
+  if (!msg) throw new Error("Message not found");
+
+  if (msg.sender.toString() !== userId.toString()) {
+    throw new Error("You are not authorized to edit this message");
+  }
+
+  msg.message = newText;
+  await msg.save();
+
+  io.to(`room-${msg.chatRoom}`).emit("message:edited", msg);
+
+  return msg;
+};
+
+
+export const deleteMessageService = async (messageId, userId) => {
+  const msg = await Message.findById(messageId);
+  if (!msg) throw new Error("Message not found");
+
+  if (msg.sender.toString() !== userId.toString()) {
+    throw new Error("You are not authorized to delete this message");
+  }
+
+  await msg.deleteOne();
+
+  io.to(`room-${msg.chatRoom}`).emit("message:deleted", { messageId });
+};
+
+
+export const markAsReadService = async (roomId, userId) => {
+  const updated = await Message.updateMany(
+    { chatRoom: roomId, readBy: { $ne: userId } },
+    { $addToSet: { readBy: userId } }
+  );
+
+  io.to(`room-${roomId}`).emit("message:read", { userId });
+
+  return updated;
+};
+
+
+export const updateChatRoomStatusService = async (roomId, adminId, status, reason = "") => {
+  const chatRoom = await ChatRoom.findById(roomId);
+  if (!chatRoom) throw new Error("Chat room not found");
+
+  switch (status) {
+    case "flagged":
+      chatRoom.status = "flagged";
+      chatRoom.flagged = {
+        status: true,
+        reason,
+        flaggedBy: adminId,
+        flaggedAt: new Date(),
+      };
+      chatRoom.closedBy = null;
+      chatRoom.closedAt = null;
+      break;
+
+    case "closed":
+      chatRoom.status = "closed";
+      chatRoom.closedBy = adminId;
+      chatRoom.closedAt = new Date();
+      // keep flagged info if previously flagged, or reset if not
+      if (!chatRoom.flagged?.status) {
+        chatRoom.flagged = {
+          status: false,
+          reason: "",
+          flaggedBy: null,
+          flaggedAt: null,
+        };
+      }
+      break;
+
+    case "active":
+      chatRoom.status = "active";
+      chatRoom.flagged = {
+        status: false,
+        reason: "",
+        flaggedBy: null,
+        flaggedAt: null,
+      };
+      chatRoom.closedBy = null;
+      chatRoom.closedAt = null;
+      break;
+
+    default:
+      throw new Error("Invalid status value");
+  }
+
+  await chatRoom.save();
+
+  // Notify clients/admin dashboard in real time
+  io.to(`room-${chatRoom._id}`).emit("chatroom:status-updated", {
+    roomId: chatRoom._id,
+    status: chatRoom.status,
+    flagged: chatRoom.flagged,
+    closedBy: chatRoom.closedBy,
+    closedAt: chatRoom.closedAt,
+  });
+
+  return chatRoom;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import { io } from "../../app.js";
+// import { Booking } from "../booking/booking.model.js";
+// import { ChatRoom } from "./chatRoom.model.js";
+// import { Message } from "./message.model.js";
+
+
+// export const sendMessageService = async (bookingId, messageData) => {
+//   const booking = await Booking.findById(bookingId);
+//   if (!booking) throw new Error("Booking not found");
+
+//   // Check authorization
+//   if (
+//     booking.customer.toString() !== messageData.sender.toString() &&
+//     booking.lender.toString() !== messageData.sender.toString()
+//   ) {
+//     // allow admin as well
+//     throw new Error("You are not authorized to send a message for this booking");
+//   }
+
+//   // Ensure chat room exists
+//   let chatRoom = await ChatRoom.findOne({ bookingId });
+//   if (!chatRoom) {
+//     chatRoom = await ChatRoom.create({
+//       bookingId,
+//       participants: [booking.customer, booking.lender],
+//       createdBy: booking.customer,
+//     });
+//   }
+
+//   // Save message
+//   const newMessage = await Message.create({
+//     chatRoom: chatRoom._id,
+//     sender: messageData.sender,
+//     message: messageData.message,
+//   });
+
+//   // Update room metadata
+//   chatRoom.lastMessage = newMessage.message;
+//   chatRoom.lastMessageAt = new Date();
+//   await chatRoom.save();
+
+//   // Emit via socket.io
+//   io.to(`room-${bookingId}`).emit("message", {
+//     ...newMessage.toObject(),
+//     bookingId,
+//   });
+
+//   return newMessage;
+// };
+
+
+
+
+
+
+
+
+
+// // export const getMessagesByBookingIdService = async (bookingId, userId) => {
+// //   const chatRoom = await ChatRoom.findOne({ bookingId });
+// //   if (!chatRoom) throw new Error("ChatRoom not found");
+
+// //   const messages = await Message.find({ chatRoom: chatRoom._id })
+// //     .populate("sender", "firstName lastName email role")
+// //     .sort({ createdAt: 1 });
+
+// //   // mark as read
+// //   for (const msg of messages) {
+// //     if (!msg.readBy.includes(userId)) {
+// //       msg.readBy.push(userId);
+// //       await msg.save();
+// //     }
+// //   }
+
+// //   return { chatRoom, messages };
+// // };
+
+
+// // export const getAllConversationsService = async () => {
+// //   const chatRooms = await ChatRoom.find({})
+// //     .populate("participants", "firstName lastName email role")
+// //     .sort({ lastMessageAt: -1 })
+// //     .lean();
+
+// //   return chatRooms;
+// // };

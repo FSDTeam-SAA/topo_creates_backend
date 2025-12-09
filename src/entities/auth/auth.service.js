@@ -1,8 +1,10 @@
 import User from './auth.model.js';
 import jwt from 'jsonwebtoken';
-import { refreshTokenSecrete, emailExpires } from '../../core/config/config.js';
+import { accessTokenExpires, accessTokenSecrete,   refreshTokenExpires, refreshTokenSecrete, emailExpires } from '../../core/config/config.js';
 import sendEmail from '../../lib/sendEmail.js';
 import verificationCodeTemplate from '../../lib/emailTemplates.js';
+import Team from '../admin/team/team.model.js';
+import bcrypt from "bcrypt";
 
 
 export const registerUserService = async ({
@@ -29,27 +31,105 @@ export const registerUserService = async ({
 
 
 export const loginUserService = async ({ email, password }) => {
-  if (!email || !password) throw new Error('Email and password are required');
+  if (!email || !password) throw new Error("Email and password are required");
 
-  const user = await User.findOne({ email }).select("_id firstName lastName email role profileImage");
+  let account = null;
+  let accountType = null;
 
-  if (!user) throw new Error('User not found');
+  // --- CHECK USER MODEL (USER + SUPER_ADMIN) ---
+  account = await User.findOne({ email }).select("+password");
 
-  const isMatch = await user.comparePassword(user._id, password);
-  if (!isMatch) throw new Error('Invalid password');
+  if (account) {
+    if (account.role === "SUPER_ADMIN") accountType = "SUPER_ADMIN";
+    else if (account.role === "USER") accountType = "USER";
+    else if (account.role === "LENDER") accountType = "LENDER";
+    else accountType = "ADMIN";
+  }
 
-  const payload = { _id: user._id, role: user.role };
+  // --- CHECK TEAM MODEL (ADMIN) ---
+  if (!account) {
+    account = await Team.findOne({ email }).select("+password");
+    if (account) accountType = "ADMIN";
+  }
 
-  const data = {
-    user,
-    accessToken: user.generateAccessToken(payload)
+  if (!account) throw new Error("User not found");
+
+  // PASSWORD VALIDATION
+  const isMatch = await bcrypt.compare(password, account.password);
+  if (!isMatch) throw new Error("Invalid password");
+
+  // JWT PAYLOAD
+  const payload = {
+    _id: account._id,
+    role: accountType,
+    permissions: accountType === "ADMIN" ? account.permissions : [],
   };
 
-  user.refreshToken = user.generateRefreshToken(payload);
-  await user.save({ validateBeforeSave: false });
+  // TOKENS
+  const accessToken = jwt.sign(payload, accessTokenSecrete, {
+    expiresIn: accessTokenExpires,
+  });
 
-  return data
+  const refreshToken = jwt.sign(payload, refreshTokenSecrete, {
+    expiresIn: refreshTokenExpires,
+  });
+
+  // SAVE REFRESH TOKEN FOR USER + SUPER_ADMIN
+  if (accountType === "USER" || accountType === "SUPER_ADMIN") {
+    account.refreshToken = refreshToken;
+    await account.save();
+  }
+
+  // RESPONSE (role-based)
+  let responseUser = {
+    _id: account._id,
+    email: account.email,
+    role: accountType,
+  };
+
+  // USER + SUPER_ADMIN RESPONSE FORMAT
+  if (accountType === "USER" || accountType === "SUPER_ADMIN" || accountType === "LENDER") {
+    responseUser.firstName = account.firstName;
+    responseUser.lastName = account.lastName;
+    responseUser.profileImage = account.profileImage || "";
+  }
+
+  // ADMIN RESPONSE FORMAT
+  if (accountType === "ADMIN") {
+    responseUser.name = account.name;
+    responseUser.permissions = account.permissions || [];
+  }
+
+  return {
+    user: responseUser,
+    accessToken,
+    refreshToken,
+  };
 };
+
+
+// export const loginUserService = async ({ email, password }) => {
+//   if (!email || !password) throw new Error('Email and password are required');
+
+//   const user = await User.findOne({ email }).select("_id firstName lastName email role profileImage");
+
+//   if (!user) throw new Error('User not found');
+
+//   const isMatch = await user.comparePassword(user._id, password);
+//   if (!isMatch) throw new Error('Invalid password');
+
+//   const payload = { _id: user._id, role: user.role };
+
+//   const data = {
+//     user,
+//     accessToken: user.generateAccessToken(payload)
+//   };
+
+//   user.refreshToken = user.generateRefreshToken(payload);
+//   await user.save({ validateBeforeSave: false });
+
+//   return data
+// };
 
 
 export const refreshAccessTokenService = async (refreshToken) => {
@@ -137,19 +217,22 @@ export const resetPasswordService = async ({ email, newPassword }) => {
 };
 
 
-export const updatePasswordService = async ({ id, password, newPassword }) => {
-  if (!id || !password || !newPassword) throw new Error('Email, current password, and new password are required');
+export const changePasswordService = async ({ userId, oldPassword, newPassword }) => {
+  if (!userId || !oldPassword || !newPassword) throw new Error('User id, old password and new password are required');
 
-  const user = await User.findById(id).select('+password');
+  const user = await User.findById(userId);
   if (!user) throw new Error('User not found');
 
-  const isMatch = await user.comparePassword(user._id, password);
-  if (!isMatch) throw new Error('Incorrect current password');
+  const isMatch = await user.comparePassword(userId, oldPassword);
+  if (!isMatch) throw new Error('Invalid old password');
 
   user.password = newPassword;
-  await user.save(); 
+  await user.save();
 
-  return { message: 'Password updated successfully' };
+  return;
 };
+
+
+
 
 

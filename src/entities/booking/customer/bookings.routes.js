@@ -1,28 +1,53 @@
 import express from "express";
 import {
-  calculateBookingPrice,
-  createBooking,
-  getMyBookings,
-  getMyBookingById,
-  markBookingReturnedByCustomer,
-  cancelBookingByCustomer,
-  openDisputeByCustomer,
-  confirmPickupByCustomer
+
+  createBookingController,
+  deleteBookingController,
+  getAllBookingsController,
+  getBookingByIdController,
+  getLenderBookingStatsController,
+  getMasterDressByNameController,
+  getPayoutByBookingIdController,
+  getUserBookingsController,
+  updateBookingController,
+
 } from "./bookings.controller.js";
-import { verifyToken, userMiddleware } from "../../../core/middlewares/authMiddleware.js"; 
+import { verifyToken, userMiddleware, lenderMiddleware, userAdminLenderSuperAdminMiddleware, adminLenderSuperadminMiddleware } from "../../../core/middlewares/authMiddleware.js"; 
+import { acceptOrRejectBookingController, createManualBookingController, getAllocatedBookingsForLenderController, getUpcomingBookingsForLenderController } from "../lender/bookings.controller.js";
 
 
 const router = express.Router();
 
 
-router.post("/calculate-price", calculateBookingPrice);
-router.post("/", verifyToken, userMiddleware, createBooking);
-router.get("/my-bookings", getMyBookings);
-router.get("/my-bookings/:bookingId", getMyBookingById);
-router.post("/my-bookings/:bookingId/mark-returned", markBookingReturnedByCustomer);
-router.post("/my-bookings/:bookingId/cancel", cancelBookingByCustomer);
-router.post("/my-bookings/:bookingId/dispute", openDisputeByCustomer);
-router.post("/my-bookings/:bookingId/confirm-pickup-time", confirmPickupByCustomer);
+router.post("/create", verifyToken, userMiddleware, createBookingController);
+router.post('/manual', verifyToken, adminLenderSuperadminMiddleware, createManualBookingController);
+router.post('/accept-reject',verifyToken, lenderMiddleware, acceptOrRejectBookingController);
+router.get("/all", verifyToken, userAdminLenderSuperAdminMiddleware, getAllBookingsController);
+router.get('/stats',getLenderBookingStatsController)
+router.get('/search', getMasterDressByNameController);
+router.get('/allocated', verifyToken, lenderMiddleware, getAllocatedBookingsForLenderController);
+
+router.get(
+  "/upcoming",
+  verifyToken,
+  adminLenderSuperadminMiddleware,
+  getUpcomingBookingsForLenderController
+);
+
+router.get("/:bookingId", verifyToken, userAdminLenderSuperAdminMiddleware, getBookingByIdController);
+// Get bookings of logged-in user
+
+router.get("/user/me", verifyToken, userMiddleware, getUserBookingsController);
+
+// Update booking by ID
+router.put("/:id", verifyToken, userAdminLenderSuperAdminMiddleware, updateBookingController);
+
+router.get('/payment/:bookingId', getPayoutByBookingIdController);
+
+// Delete booking by ID
+router.delete("/:id", verifyToken, userAdminLenderSuperAdminMiddleware, deleteBookingController);
+
+
 
 export default router;
 

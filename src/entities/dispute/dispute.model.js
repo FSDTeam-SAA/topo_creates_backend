@@ -14,6 +14,12 @@ const TimelineEntrySchema = new Schema({
   timestamp: { type: Date, default: Date.now },
   message: { type: String, required: true },
   attachments: [FileSchema],
+  
+  type: {
+    type: String,
+    enum: ['submission', 'response', 'update', 'resolution', 'escalation'],
+    required: true
+  }
 }, { _id: false });
 
 
@@ -46,11 +52,14 @@ const DisputeSchema = new Schema({
 
   timeline: [TimelineEntrySchema],
 
+  lastActionBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  lastActionAt: { type: Date },
+
   // Escalation Info 
   isEscalated: { type: Boolean, default: false },
   escalationReason: { type: String },
   escalationDescription: { type: String },
-  escalationPriority: { type: String, enum: ['Standard', 'High'] },
+  escalationPriority: { type: String, enum: ['Low', 'Medium', 'High'] },
   escalationEvidence: [FileSchema],
   escalationConfirmed: { type: Boolean, default: false },
   escalationScheduleCall: { type: Boolean, default: false },

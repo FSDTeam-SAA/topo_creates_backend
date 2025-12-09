@@ -2,28 +2,20 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
-const AddressSchema = new Schema({
-  addressLine: { type: String, required: true, trim: true },
-  suburb: { type: String, trim: true },
-  state: { type: String, trim: true },
-  postalCode: {
-    type: String,
-    required: [true, 'Postal code is required'],
-    trim: true,
-  },
-});
+
 
 const RentalPriceSchema = new Schema({
   fourDays: {
     type: Number,
-    required: [true, '4-day rental price is required'],
+    
     min: [0, 'Price must be positive'],
   },
   eightDays: {
     type: Number,
-    required: [true, '8-day rental price is required'],
+   
     min: [0, 'Price must be positive'],
   },
+  _id: false
 });
 
 const ListingSchema = new Schema(
@@ -47,10 +39,28 @@ const ListingSchema = new Schema(
       type: String,
       trim: true,
     },
-    size: {
-      type: String,
-      required: [true, 'Size is required'],
-      trim: true,
+   size: {
+      type: [String],
+      enum: [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL",
+        "XXXL",
+        "4XL",
+        "5XL",
+        "Custom"
+      ],
+      required: true,
+      trim:true
+    },
+    status:{
+    type:String,
+    enum:['available','booked','not-available'],
+    default:'available'
     },
     colour: {
       type: String,
@@ -72,15 +82,23 @@ const ListingSchema = new Schema(
     },
     category: {
       type: String,
-      enum: ['Formal', 'Casual', 'Cocktail', 'Bridal', 'Party', 'Workwear', 'Other'],
+      enum: ['Formal',
+    'Casual',
+    'Cocktail',
+    'Bridal',
+    'Party',
+    'Evening Gown',
+    'Ball Gown',
+    'Red Carpet',
+    'Designer',
+    'Haute Couture',
+    'Luxury',
+    'Other'],
       required: [true, 'Category is required'],
     },
-    locations: {
-      type: [AddressSchema],
-      validate: [(val) => val.length > 0, 'At least one location is required'],
-    },
+  
     media: {
-      type: [String], // URLs to Cloudinary or similar
+      type: [String], 
       validate: [(val) => val.length > 0, 'At least one media item is required'],
     },
     description: {
@@ -100,7 +118,7 @@ const ListingSchema = new Schema(
       enum: ['Dry Clean Only', 'Hand Wash', 'Machine Wash', 'Delicate Wash', 'Other'],
     },
     occasion: {
-      type: [String], // can be multiple (e.g., ["Wedding", "Prom"])
+      type: [String],
       default: [],
     },
     
@@ -110,7 +128,7 @@ const ListingSchema = new Schema(
     },
     pickupOption: {
       type: String,
-      enum: ['Local', 'Australia-wide', 'Both'],
+      enum: ['Local-Pickup', 'Australia-wide', 'Both'],
       required: [true, 'Pickup option is required'],
     },
     approvalStatus: {
@@ -124,11 +142,9 @@ const ListingSchema = new Schema(
     },
     isActive: {
       type: Boolean,
-      default: true,
+      default: false,
     },
-    isActive: { type: Boolean, default: true },
-    
-  },
+},
   {
     timestamps: true,
     toJSON: {

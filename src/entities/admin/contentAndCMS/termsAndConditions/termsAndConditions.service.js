@@ -1,32 +1,31 @@
-import TermsAndConditions from './termsAndConditions.model.js';
+import TermsAndConditions from "./termsAndConditions.model.js";
 
-export const createItemService = async (data) => {
-  const item = await TermsAndConditions.create(data);
-  return item;
+
+export const createTerms = async (data) => {
+  const terms = new TermsAndConditions(data);
+  return await terms.save();
 };
 
-export const getItemsService = async () => {
-  const items = await TermsAndConditions.find();
-  return items;
+
+export const getAllTerms = async (status) => {
+  const filter = {};
+  if (status) {
+    filter.status = status; 
+  }
+  return await TermsAndConditions.find(filter).sort({ createdAt: -1 });
 };
 
-export const getItemByIdService = async (id) => {
-  const item = await TermsAndConditions.findById(id);
-  if (!item) throw new Error('Item not found');
-  return item;
+
+export const getTermsById = async (id) => {
+  return await TermsAndConditions.findById(id);
 };
 
-export const updateItemService = async (id, data) => {
-  const item = await TermsAndConditions.findByIdAndUpdate(id, data, {
-    new: true,
-    runValidators: true,
-  });
-  if (!item) throw new Error('Item not found');
-  return item;
+
+export const updateTerms = async (id, updateData) => {
+  return await TermsAndConditions.findByIdAndUpdate(id, updateData, { new: true });
 };
 
-export const deleteItemService = async (id) => {
-  const item = await TermsAndConditions.findByIdAndRemove(id);
-  if (!item) throw new Error('Item not found');
-  return item;
+
+export const deleteTerms = async (id) => {
+  return await TermsAndConditions.findByIdAndDelete(id);
 };

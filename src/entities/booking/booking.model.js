@@ -1,76 +1,105 @@
 import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
+// lender allocation data for both the shipping and the local pick up 
 
-const AddressSchema = new Schema({
-  addressLine: { type: String, required: true, trim: true },
-  suburb: { type: String, trim: true },
-  state: { type: String, trim: true },
-  postalCode: { type: String, required: true, trim: true },
-  country: { type: String, default: 'Australia', trim: true },
-  contactName: { type: String, trim: true },
-  contactPhone: { type: String, trim: true },
+const LenderInfoSchema = new mongoose.Schema({
+  lenderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  email: { type: String },
+  price: { type: Number }, // optional if you want to store the lender's offer
+  distance: { type: Number }, // from API
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+coordinates: {
+  type: [Number],
+  required: function() {
+    return this.allocationType === 'LocalPickup';
+  }
+}
+
+
+  },
+  allocatedAt: { type: Date, default: Date.now },
+  allocationType: { type: String, enum: ['LocalPickup', 'Shipping'], default: 'LocalPickup' },
 });
 
+
+
+// Main Booking schema
 const BookingSchema = new Schema(
   {
     customer: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    lender: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    listing: { type: Schema.Types.ObjectId, ref: 'Listings', required: true, index: true },
-
+    lender: { type: Schema.Types.ObjectId, ref: 'User'},
+    listing: { type: Schema.Types.ObjectId, ref: 'Listings'},
+    masterdressId: { type: Schema.Types.ObjectId,ref:'MasterDress', required: true },
+    dressName:{type:String},
+    allocatedLender: LenderInfoSchema,
     rentalStartDate: { type: Date, required: true },
     rentalEndDate: { type: Date, required: true },
     rentalDurationDays: { type: Number, required: true, enum: [4, 8] },
-
-    baseRentalPrice: { type: Number, min: 0, default: 0 },
-    insuranceOptIn: { type: Boolean, default: false },
-    insuranceFee: { type: Number, min: 0, default: 0 },
-    shippingFee: { type: Number, min: 0, default: 0 },
-    pickupBookingFee: { type: Number, min: 0, default: 0 },
-    totalAmount: { type: Number, min: 0 },
-
-    platformCommissionRate: { type: Number, min: 0, max: 1 },
-    platformCommissionAmount: { type: Number, min: 0 },
-    lenderEarnings: { type: Number, min: 0 },
-
+    listingId: { type: String},
+    city: { type: String, default: '' },
+    state: { type: String, default: '' },
+    country: { type: String, default: '' },
+    postcode: { type: String, default: '' },
+    suburb: { type: String, default: '' },
+    address: { type: String, default: '' }, 
+    size: {
+      type: String,
+      required: true,
+    },
     deliveryMethod: {
       type: String,
-      enum: ['Shipping', 'Pickup'],
+      enum: ['Shipping', 'Pickup','Manual booking'],
       default: 'Shipping',
     },
-    shippingAddress: { type: AddressSchema },
-    selectedPickupLocation: { type: AddressSchema },
-    outboundTrackingNumber: { type: String, trim: true },
-    returnTrackingNumber: { type: String, trim: true },
-    pickupConfirmedTime: { type: Date },
+   
+    lenderPrice:{type:Number,default:0},
+    rentalFee: { type: Number},
+    shippingFee: { type: Number, default: 10, immutable: true },
+    insuranceFee: { type: Number, default: 0 },
+    totalAmount: { type: Number},
 
-    status: {
+    deliveryStatus: {
       type: String,
       enum: [
         'Pending', 'Confirmed', 'PreparingShipment', 'LabelReady',
         'ShippedToCustomer', 'PickedUpByCustomer', 'InPossessionOfCustomer',
         'ReturnInitiated', 'ShippedToLender', 'ReceivedByLender',
-        'Completed', 'CancelledByCustomer', 'CancelledByLender',
-        'CancelledByAdmin', 'Disputed', 'IssueReported',
+        'Completed', 'CancelledByCustomer', 'CancelledByLender','Return Due','Dress Returned',
+        'CancelledByAdmin', 'Disputed', 'IssueReported','Accepted','WaitingForPayment',
+        'Delivered','Rejected','RejectedByLender','PaymentRetryScheduled','AcceptedByLender'
       ],
       default: 'Pending',
       index: true,
     },
-
     statusHistory: [
       {
         status: String,
         timestamp: { type: Date, default: Date.now },
         updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-        notes: String,
+        reason: String,
       },
     ],
-
-    paymentIntentId: { type: String },
+paymentErrorMessage: { type: String },
+    paymentIntent: { type: String },
+    stripePaymentIntentId: { type: String },
+    stripeChargeId: { type: String },
+    stripeRefundId: { type: String },
+    stripeTransferId: { type: String },
     paymentStatus: {
       type: String,
-      enum: ['Pending', 'Succeeded', 'Failed', 'Refunded', 'PartiallyRefunded'],
+      enum: ['Pending','RetryPending', 'Paid','Succeeded', 'Failed', 'Refunded', 'PartiallyRefunded','NotCharged'],
       default: 'Pending',
+    },
+    payoutStatus: {
+      type: String,
+      enum: ["pending", "transferred", "failed"],
+      default: "pending",
     },
     refundDetails: [
       {
@@ -90,11 +119,9 @@ const BookingSchema = new Schema(
         'ProceededWithRental', 'DidNotProceed',
         'BookedDifferentItemExternally', 'BookedDifferentItemOnPlatform',
       ],
+      default: 'ProceededWithRental',
     },
     tryOnNotes: { type: String },
-
-    lateFeeAmount: { type: Number, min: 0, default: 0 },
-    isLateFeeApplied: { type: Boolean, default: false },
 
     isManualBooking: { type: Boolean, default: false },
     manualBookingDescription: { type: String },
@@ -117,33 +144,32 @@ const BookingSchema = new Schema(
   }
 );
 
+// Pre-save hook: initialize statusHistory and calculate fees
+BookingSchema.pre('save', async function (next) {
+  try {
 
-BookingSchema.virtual('isReturnOverdue').get(function () {
-  const inPossessionStatuses = ['InPossessionOfCustomer', 'ShippedToCustomer', 'PickedUpByCustomer'];
-  if (inPossessionStatuses.includes(this.status) && this.rentalEndDate) {
-    const bufferDays = 2;
-    const expectedReturnDate = new Date(this.rentalEndDate);
-    expectedReturnDate.setDate(expectedReturnDate.getDate() + bufferDays);
-    return new Date() > expectedReturnDate;
+   
+    // Initialize statusHistory for new bookings
+    if (this.isNew && this.deliveryStatus) {
+      this.statusHistory = [
+        {
+          status: this.deliveryStatus,
+          timestamp: new Date(),
+          updatedBy: this.customer || null,
+        },
+      ];
+    }
+
+
+     
+
+    next();
+  } catch (err) {
+    next(err);
   }
-  return false;
 });
 
-
-BookingSchema.pre('save', function (next) {
-  if (this.isNew && this.status) {
-    this.statusHistory = [
-      {
-        status: this.status,
-        timestamp: new Date(),
-        updatedBy: this.customer || null,
-      },
-    ];
-  }
-  next();
-});
-
+// Indexes for faster queries
 BookingSchema.index({ rentalStartDate: 1, rentalEndDate: 1 });
-BookingSchema.index({ 'shippingAddress.postalCode': 1 });
 
 export const Booking = mongoose.model('Booking', BookingSchema);

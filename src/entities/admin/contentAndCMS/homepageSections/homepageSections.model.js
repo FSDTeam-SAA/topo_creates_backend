@@ -1,13 +1,13 @@
 import mongoose, { Schema } from 'mongoose';
 
+const FileSchema = new Schema({
+  filename: String,
+  url: String,
+}, { _id: false });
+
+
 const homepageSectionSchema = new Schema(
     {
-        sectionId: {
-            type: String,
-            required: true,
-            unique: true,
-            trim: true
-        },
         sectionName: {
             type: String,
             required: true,
@@ -18,14 +18,11 @@ const homepageSectionSchema = new Schema(
             required: true,
             trim: true
         },
-        imageURL: {
-            type: String,
-            required: true
-        },
+        image: [FileSchema],
         status: {
             type: String,
-            enum: ['published', 'draft'],
-            required: true
+            enum: ['active', 'inactive','draft'],
+            default: 'active',
         }
     },
     {

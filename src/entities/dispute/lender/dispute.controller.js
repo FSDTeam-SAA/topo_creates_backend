@@ -52,10 +52,11 @@ export const getLenderDisputes = async (req, res, next) => {
     const lenderId = req.user?._id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const { status, monthFilter } = req.query; 
 
-    const result = await disputeService.getLenderDisputesService(lenderId, page, limit);
+    const result = await disputeService.getLenderDisputesService(lenderId, page, limit, status, monthFilter);
 
-    return generateResponse(res, 200, true, "Customer disputes fetched", result);
+    return generateResponse(res, 200, true, "Lender disputes fetched successfully", result);
   } catch (error) {
     next(error);
   }
@@ -116,18 +117,6 @@ export const escalateDisputeByLender = async (req, res, next) => {
     next(error);
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 export const replyToSupportByLender = async (req, res, next) => {

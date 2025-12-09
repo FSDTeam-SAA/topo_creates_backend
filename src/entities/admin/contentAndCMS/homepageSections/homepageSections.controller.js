@@ -1,46 +1,124 @@
-import { generateResponse } from '../../lib/responseFormate.js';
-import {
-    createHomepageSectionService,
-    getAllHomepageSectionsService,
-    updateHomepageSectionService,
-    deleteHomepageSectionService,
-} from './homepageSections.service.js';
+import { cloudinaryUpload } from "../../../../lib/cloudinaryUpload.js";
+import { generateResponse } from "../../../../lib/responseFormate.js";
+import * as homepageSectionService from "../homepageSections/homepageSections.service.js";
 
-export const createHomepageSection = async (req, res) => {
-    try {
-        const homepageSection = await createHomepageSectionService(req.body);
-        generateResponse(res, 201, true, 'Homepage section created successfully', homepageSection);
-    } catch (error) {
-        generateResponse(res, 500, false, 'Failed to create homepage section', null);
+
+export const createHomepageSection = async (req, res, next) => {
+  try {
+    const { sectionName, content, status } = req.body;
+
+    if (!sectionName || !content || !status) {
+      return generateResponse(res, 400, false, "All fields are required");
     }
+
+    let image = [];
+
+    if (req.files?.filename) {
+      const file = req.files.filename[0];
+      const uploadResult = await cloudinaryUpload(file.path, `homepage_section_${Date.now()}`, "homepage_sections");
+
+      if (uploadResult?.secure_url) {
+        image.push({
+          filename: file.originalname,
+          url: uploadResult.secure_url,
+        });
+      }
+    }
+
+    const sectionData = { sectionName, content, image, status };
+
+    const newSection = await homepageSectionService.createHomepageSection(sectionData);
+    return generateResponse(res, 201, true, "Homepage section created successfully", newSection);
+  } catch (error) {
+    console.error("Error creating homepage section:", error);
+    next(error);
+  }
 };
 
-export const getAllHomepageSections = async (req, res) => {
-    try {
-        const homepageSections = await getAllHomepageSectionsService();
-        generateResponse(res, 200, true, 'Homepage sections retrieved successfully', homepageSections);
-    } catch (error) {
-        generateResponse(res, 500, false, 'Failed to retrieve homepage sections', null);
-    }
+
+export const getAllHomepageSections = async (req, res, next) => {
+  try {
+    const { status } = req.query; 
+    const sections = await homepageSectionService.getAllHomepageSections(status);
+    return generateResponse(
+      res,
+      200,
+      true,
+      "Homepage sections fetched successfully",
+      sections
+    );
+  } catch (error) {
+    console.error("Error fetching homepage sections:", error);
+    next(error);
+  }
 };
 
-export const updateHomepageSection = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const updatedHomepageSection = await updateHomepageSectionService(id, req.body);
-        generateResponse(res, 200, true, 'Homepage section updated successfully', updatedHomepageSection);
-    } catch (error) {
-        generateResponse(res, 500, false, 'Failed to update homepage section', null);
+
+export const getHomepageSectionById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const section = await homepageSectionService.getHomepageSectionById(id);
+
+    if (!section) {
+      return generateResponse(res, 404, false, "Homepage section not found");
     }
+
+    return generateResponse(res, 200, true, "Homepage section fetched successfully", section);
+  } catch (error) {
+    console.error("Error fetching homepage section:", error);
+    next(error);
+  }
 };
 
-export const deleteHomepageSection = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const deletedHomepageSection = await deleteHomepageSectionService(id);
-        generateResponse(res, 200, true, 'Homepage section deleted successfully', deletedHomepageSection);
-    } catch (error) {
-        generateResponse(res, 500, false, 'Failed to delete homepage section', null);
+
+export const updateHomepageSection = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { sectionName, content, status } = req.body;
+
+    let image = [];
+
+    if (req.files?.filename) {
+      const file = req.files.filename[0];
+      const uploadResult = await cloudinaryUpload(file.path, `homepage_section_${Date.now()}`, "homepage_sections");
+
+      if (uploadResult?.secure_url) {
+        image.push({
+          filename: file.originalname,
+          url: uploadResult.secure_url,
+        });
+      }
     }
+
+    const updatedData = { sectionName, content, status };
+    if (image.length > 0) updatedData.image = image;
+
+    const updatedSection = await homepageSectionService.updateHomepageSection(id, updatedData);
+
+    if (!updatedSection) {
+      return generateResponse(res, 404, false, "Homepage section not found or update failed");
+    }
+
+    return generateResponse(res, 200, true, "Homepage section updated successfully", updatedSection);
+  } catch (error) {
+    console.error("Error updating homepage section:", error);
+    next(error);
+  }
 };
 
+
+export const deleteHomepageSection = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const deleted = await homepageSectionService.deleteHomepageSection(id);
+
+    if (!deleted) {
+      return generateResponse(res, 404, false, "Homepage section not found or already deleted");
+    }
+
+    return generateResponse(res, 200, true, "Homepage section deleted successfully");
+  } catch (error) {
+    console.error("Error deleting homepage section:", error);
+    next(error);
+  }
+};

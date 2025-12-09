@@ -1,41 +1,16 @@
 import express from 'express';
-import {
-  getAllDisputes,
-  getDisputeById,
-  updateDisputeStatus,
-  submitResolution,
-  processRefund,
-  downloadDisputeReport,
-  requestInfoFromParty,
-  addAdminNote
-} from '../../controllers/admin/disputes.controller.js';
-import { adminMiddleware, verifyToken } from '../../../core/middlewares/authMiddleware.js';
-
+import { getAllDisputes, getDisputeById, responseToDispute, submitResolution } from './dispute.controller.js';
+import { superAdminOrAdminMiddleware, verifyToken } from '../../../core/middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// Get all disputes (filters: status, date, search)
-router.get('/', verifyToken, adminMiddleware, getAllDisputes);
+router.get('/all', verifyToken, superAdminOrAdminMiddleware, getAllDisputes);
 
-// Get specific dispute
-router.get('/:disputeId', verifyToken, adminMiddleware, getDisputeById);
+router.get('/:disputeId', verifyToken, superAdminOrAdminMiddleware, getDisputeById);
 
-// Update dispute status
-router.patch('/:disputeId/status', verifyToken, adminMiddleware, updateDisputeStatus);
+router.post('/:disputeId/response', verifyToken, superAdminOrAdminMiddleware, responseToDispute);
 
-// Submit resolution (mark resolved, decision summary)
-router.post('/:disputeId/resolve', verifyToken, adminMiddleware, submitResolution);
+router.post('/:disputeId/resolve', verifyToken, superAdminOrAdminMiddleware, submitResolution);
 
-// Process refund (or transfer)
-router.post('/:disputeId/refund', verifyToken, adminMiddleware, processRefund);
-
-// Download report
-router.get('/:disputeId/report', verifyToken, adminMiddleware, downloadDisputeReport);
-
-// Request more info from customer/lender
-router.post('/:disputeId/request-info', verifyToken, adminMiddleware, requestInfoFromParty);
-
-// Add internal note (admin-only)
-router.post('/:disputeId/note', verifyToken, adminMiddleware, addAdminNote);
 
 export default router;

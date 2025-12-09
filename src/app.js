@@ -1,3 +1,4 @@
+// app.js - FIXED ORDER FOR STRIPE WEBHOOK
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -5,79 +6,89 @@ import xssClean from 'xss-clean';
 import mongoSanitize from 'express-mongo-sanitize';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import path from "path";
-import { fileURLToPath } from "url";
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 import logger from './core/config/logger.js';
 import errorHandler from './core/middlewares/errorMiddleware.js';
 import notFound from './core/middlewares/notFound.js';
 import { globalLimiter } from './lib/limit.js';
 import appRouter from './core/app/appRouter.js';
-
-// socket import
-import { createServer } from 'http';
-import { Server } from 'socket.io';
-
+import { stripeWebhookHandler } from './entities/webhook.js';
+import { connectedAccountWebhookHandler } from './entities/webhookAccounts.js';
+//import { startReminderJob } from './lib/reminderJob.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Set up security middleware
+// Stripe webhook route FIRST — must be raw body
+app.post('/api/v1/webhook/main', express.raw({ type: 'application/json' }), stripeWebhookHandler);
+app.post('/api/v1/webhook/connected', express.raw({ type: '*/*' }), connectedAccountWebhookHandler);
+
+
+// Security middleware
 app.use(helmet());
-app.use(
-  cors({
-    origin: "*"
-  })
-);
+app.use(cors({
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', "PATCH",'OPTIONS'],
+}));
 app.use(xssClean());
 app.use(mongoSanitize());
+app.use(morgan('combined'));
+app.use(cookieParser());
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith('/api/v1/webhook/main') ||  req.originalUrl.startsWith('/api/v1/webhook/connected')) {
+    // Skip JSON parsing, Stripe needs raw body
+    return next();
+  }
+  express.json({ limit: '10mb' })(req, res, next);
+});
+
+app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting
+app.use(globalLimiter);
+
+// Static files
+const uploadPath = path.resolve(__dirname, '../uploads');
+app.use('/uploads', express.static(uploadPath));
+
+// Home route
+app.get('/', (req, res) => {
+  res.send({ message: 'Server is running' });
+});
+
+// API routes
+app.use('/api', appRouter);
+
 
 
 
 // Socket IO setup
 const server = createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
+
+export const io = new Server(server, {
+  cors: { origin: '*', methods: ['GET', 'POST'] },
 });
 
 
-
-// Set up logging middleware
-app.use(morgan('combined'));
-
-// Set up body parsing middleware
-app.use(express.json({ limit: '10000kb' }));
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-// Set up rate limiting middleware
-app.use(globalLimiter);
-
-// Set up static files middleware
-const uploadPath = path.resolve(__dirname, "../uploads");
-app.use("/uploads", express.static(uploadPath));
-
-// Set up API routes
-app.use('/api', appRouter);
-
-
-
-// Socket IO connection
 io.on("connection", (socket) => {
-  // console.log("New client connected",socket.id);
+  console.log("New client connected", socket.id);
 
-  // Join a room
-  socket.on("joinRoom", (room) => {
-    socket.join(`room-${room}`);
-    console.log(`Client ${room} joined room: ${room}`);
+  socket.on("registerUser", (userId) => {
+    socket.join(`user-${userId}`);
+    console.log(`User ${userId} joined personal room`);
   });
 
-
+  socket.on("joinRoom", (room) => {
+    socket.join(`room-${room}`);
+    console.log(`Client joined chat room: ${room}`);
+  });
 
   socket.on("disconnect", () => {
     console.log("Client disconnected");
@@ -85,16 +96,17 @@ io.on("connection", (socket) => {
 });
 
 
+// registerUser → global communication || for personal notifications (new chat, new message alert).
 
-// Set up 404 error middleware
+// joinRoom → scoped communication || for live chat sessions (realtime messages inside the room).
+
+
+// Error handling
 app.use(notFound);
-
-// Set up error handling middleware
 app.use(errorHandler);
 
 logger.info('Middleware stack initialized');
 
-//Export the app
-export {app, server, io};
+//startReminderJob();
 
-
+export { server, app };

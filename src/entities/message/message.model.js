@@ -1,38 +1,35 @@
 import mongoose, { Schema } from "mongoose";
 
-const messageSchema = new Schema(
+const attachmentSchema = new Schema(
   {
-    bookingId: {
-      type: Schema.Types.ObjectId,
-      ref: "Booking",
-      required: true
+    url: { type: String, required: true }, 
+    type: {
+      type: String,
+      enum: ["image", "video", "file"],
+      required: true,
     },
-    messages:[
-        {
-            message: {
-                type: String,
-                required: true
-            },
-            sender: {
-                type: Schema.Types.ObjectId,
-                ref: "User",
-                required: true
-            },
-            read: {
-                type: Boolean,
-                default: false
-            },
-            createdAt: {
-                type: Date,
-                default: Date.now
-            }
-        }
-    ]
+    fileName: { type: String }, 
+    size: { type: Number }, 
+    mimeType: { type: String }, 
   },
-  {
-    timestamps: true
-  }
+  { _id: false } 
 );
 
-const Message = mongoose.model("Message", messageSchema);
-export default Message;
+const messageSchema = new Schema(
+  {
+    chatRoom: { type: Schema.Types.ObjectId, ref: "ChatRoom", required: true },
+    sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    message: { type: String }, 
+    attachments: [attachmentSchema], 
+    readBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
+  },
+  { timestamps: true }
+);
+
+
+messageSchema.index({ chatRoom: 1, createdAt: -1 }); 
+messageSchema.index({ sender: 1, createdAt: -1 });
+messageSchema.index({ chatRoom: 1, readBy: 1 });
+
+export const Message = mongoose.model("Message", messageSchema);
+
