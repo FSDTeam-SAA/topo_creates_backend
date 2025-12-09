@@ -29,7 +29,7 @@ import adminDispute from '../../entities/dispute/admin/dispute.routes.js';
 import overviewRoutes from '../../entities/lender/overview/overview.routes.js';
 import customerRoutes from '../../entities/admin/customer/customer.routes.js'
 import overviewAdminRoutes from '../../entities/admin/overview/overview.routes.js';
-
+import promoCode from '../../entities/admin/promoCode/promoCode.routes.js'
 
 const router = express.Router();
 
@@ -43,12 +43,14 @@ router.use('/v1/lender', lenderRoutes);
 router.use('/v1/payment', paymentRoutes);
 router.use('/v1/lender/account', accountRoutes);
 
+
 router.use('/v1/message', messageRoutes)
 router.use('/v1/payout',payOutRoutes)
 
 
 // admin routes
 router.use('/v1/admin',adminListingRoutes)
+router.use('/v1/admin/promo',promoCode)
 router.use('/v1/admin/team', teamRoutes);
 router.use('/v1/support',supportRoutes)
 
