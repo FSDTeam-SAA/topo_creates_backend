@@ -4,7 +4,7 @@ import { createPayoutRequestService,getAllPayoutsService, getPayoutByIdService, 
 
 export const createPayoutController = async (req, res) => {
   try {
-    const lenderId = req.user?.id; 
+    const lenderId = req.user?._id; 
     // console.log("lenderr",lenderId);
     const { bookingId } = req.body; 
     if (!bookingId) {

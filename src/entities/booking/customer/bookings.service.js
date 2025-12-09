@@ -56,16 +56,36 @@ export const createBookingService = async ({ userId, role, body }) => {
 let allocatedLender = null;
 
 if (deliveryMethod === 'Pickup' && selectedLender) {
-  const lender = selectedLender[0];
+const lender = selectedLender[0];
+
+  // --- Check if the lender is allowed for this dress ---
+  if (!masterDress.lenderIds.some(id => id.toString() === lender._id.toString())) {
+    throw new Error('Selected lender is not listed for this Master Dress.');
+  }
+
+  // --- Find the listing for this lender among the MasterDress listings ---
+  const lenderListing = await Listing.findOne({
+    _id: { $in: masterDress.listingIds },  // Only listings for this MasterDress
+    lenderId: new mongoose.Types.ObjectId(lender._id),
+    isActive: true,
+    approvalStatus: 'approved'
+  }).session(session);
+
+  if (!lenderListing) throw new Error('Selected lender does not have an active approved listing for this dress.');
+
+  // --- Allocate lender ---
   allocatedLender = {
     lenderId: lender._id,
     email: lender.email,
     distance: lender.distance,
-    location: lender.location, // MUST include coordinates
+    location: lender.location, // as sent in body
     allocationType: 'LocalPickup',
-   
+    price: rentalDurationDays <= 4
+      ? lenderListing.rentalPrice.fourDays
+      : lenderListing.rentalPrice.eightDays,
+    allocatedAt: new Date()
   };
-} else if (deliveryMethod === 'Shipping') {
+}  else if (deliveryMethod === 'Shipping') {
   const listings = await Listing.find({
     _id: { $in: masterDress.listingIds },
     isActive: true,
@@ -112,6 +132,7 @@ if (deliveryMethod === 'Pickup' && selectedLender) {
       rentalDurationDays,
       size,
       deliveryMethod,
+      lenderPrice: allocatedLender.price,
       rentalFee,
       insuranceFee,
       shippingFee,

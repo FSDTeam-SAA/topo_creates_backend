@@ -17,6 +17,12 @@ const payoutSchema = new Schema(
       type: Number,
       required: true,
     },
+    lenderPrice:{
+      type:Number,
+      
+
+    },
+
     requestedAmount: {
       type: Number,
       required: true,

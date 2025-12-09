@@ -215,3 +215,35 @@ if (selectedUserIds && selectedUserIds.length > 0) {
     next(error);
   }
 };
+
+export const getUserSpecificActivePromoCodes = async (req, res, next) => {
+  try {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: user not logged in",
+      });
+    }
+
+    // Find promo codes where:
+    // 1. Active = true
+    // 2. Not expired
+    // 3. Logged-in user is inside selectedUsers array
+    const promos = await PromoCode.find({
+      isActive: true,
+      expiresAt: { $gte: new Date() },
+      selectedUsers: { $in: [userId] },
+    }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "User-specific active promo codes fetched successfully",
+      data: promos,
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};

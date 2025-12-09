@@ -43,6 +43,7 @@ export const createPayoutRequestService = async ({ lenderId, bookingId }) => {
   // 5️⃣ Save payout request
   const payout = await payOutModel.create({
     lenderId,
+    lenderPrice:booking.lenderPrice,
     bookingId: booking._id,
     bookingAmount,
     requestedAmount,
