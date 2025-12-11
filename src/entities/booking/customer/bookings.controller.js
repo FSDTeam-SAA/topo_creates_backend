@@ -25,7 +25,9 @@ export const createBookingController = async (req, res) => {
 export const getAllBookingsController = async (req, res) => {
   const { page = 1, limit = 10, search, date, lender, dressId, customer } = req.query;
   const role = req.user.role;
-  const userId = req.user.id;
+  const userId = req.user._id;
+
+  console.log("userId", userId);
 
   // Build query object with only defined values
   const queryObj = {};
