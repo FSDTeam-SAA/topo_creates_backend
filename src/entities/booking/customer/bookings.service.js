@@ -7,6 +7,8 @@ import payOutModel from "../../lender/payOut/payOut.model.js";
 import paymentModel from "../../Payment/Booking/payment.model.js";
 import MasterDress from "../../admin/Lisitngs/ReviewandMain Site Listing/masterDressModel.js";
 import { ChatRoom } from "../../message/chatRoom.model.js";
+import promoCodeModel from "../../admin/promoCode/promoCode.model.js";
+import promoCodeUsageModel from "../promoCodeUsage.model.js";
 
 
 export const createBookingService = async ({ userId, role, body }) => {
@@ -28,7 +30,8 @@ export const createBookingService = async ({ userId, role, body }) => {
       tryOnAllowedByLender,
       tryOnOutcome,
       tryOnNotes,
-      selectedLender 
+      selectedLender ,
+      promoCode
     } = body;
 
     // --- Validate user ---
@@ -120,7 +123,50 @@ const lender = selectedLender[0];
       ?  masterDress.basePrice
       : masterDress.basePrice + (rentalDurationDays >= 8 ? 15 : 0);
 
-    const totalAmount = rentalFee + insuranceFee + shippingFee;
+    let totalAmount = rentalFee + insuranceFee + shippingFee;
+
+
+// ---------------------------
+// PROMO CODE VALIDATION + DISCOUNT (ADD HERE)
+// ---------------------------
+let discountAmount = 0;
+let appliedPromo = null;
+
+if (body.promoCode) {
+  
+
+  appliedPromo = await promoCodeModel.findOne({
+    code: body.promoCode,
+    isActive: true,
+    expiresAt: { $gte: new Date() }
+  }).session(session);
+
+  if (!appliedPromo) {
+    throw new Error("Invalid or expired promo code.");
+  }
+
+  // OPTIONAL: prevent multiple user usage
+  
+  const alreadyUsed = await promoCodeUsageModel.countDocuments({
+    promoCodeId: appliedPromo._id,
+    userId: user._id
+  }).session(session);
+
+  if (appliedPromo.maxUsage && alreadyUsed >= appliedPromo.maxUsage) {
+    throw new Error("Promo code usage limit reached.");
+  }
+
+  // Calculate discount
+  if (appliedPromo.discountType === "PERCENTAGE") {
+    discountAmount = (totalAmount * appliedPromo.discount) / 100;
+  } else if (appliedPromo.discountType === "FLAT") {
+    discountAmount = appliedPromo.discount;
+  }
+
+  discountAmount = Math.min(discountAmount, totalAmount);
+
+  totalAmount -= discountAmount;
+}
 
     // --- Prepare booking data ---
     const bookingData = {
@@ -155,8 +201,27 @@ const lender = selectedLender[0];
     const booking = new Booking(bookingData);
     await booking.save({ session });
 
+
     // Populate customer info
     await booking.populate([{ path: 'customer', select: '-password -refreshToken' }]);
+
+if (appliedPromo) {
+  const PromoUsage = mongoose.model("PromoCodeUsage");
+
+  await PromoUsage.create(
+    [{
+      promoCodeId: appliedPromo._id,
+      userId: user._id,
+      bookingId: booking._id,
+      discountApplied: discountAmount
+    }],
+    { session }
+  );
+
+  // increase usedCount
+  appliedPromo.usedCount += 1;
+  await appliedPromo.save({ session });
+}
 
     await session.commitTransaction();
     session.endSession();

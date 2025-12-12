@@ -5,6 +5,7 @@
 import { promoCodeTemplate } from "../../../lib/emailTemplates/promoCode.template.js";
 import { sendEmail } from "../../../lib/resendEmial.js";
 import User from "../../auth/auth.model.js";
+import promoCodeUsageModel from "../../booking/promoCodeUsage.model.js";
 import PromoCode from "./promoCode.model.js";
 
 // =============================
@@ -51,13 +52,66 @@ export const createPromoCode = async (req, res, next) => {
 // =============================
 export const getAllPromoCodes = async (req, res, next) => {
   try {
+    // 1️⃣ Fetch all promo codes
     const promos = await PromoCode.find().sort({ createdAt: -1 });
 
+    // 2️⃣ Total issued discount = discount * maxUsage
+    const issuedAgg = await PromoCode.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalIssuedDiscount: {
+            $sum: { $multiply: ["$discount", "$maxUsage"] }
+          }
+        }
+      }
+    ]);
+    const totalIssuedDiscount =
+      issuedAgg.length > 0 ? issuedAgg[0].totalIssuedDiscount : 0;
+
+    // 3️⃣ Total discount given from PromoCodeUsage
+    const usageAgg = await promoCodeUsageModel.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalDiscountGiven: { $sum: "$discountApplied" }
+        }
+      }
+    ]);
+    const totalDiscountGiven =
+      usageAgg.length > 0 ? usageAgg[0].totalDiscountGiven : 0;
+
+    // 4️⃣ Fetch all PromoCodeUsage documents with populated fields
+    const allUsage = await promoCodeUsageModel.find()
+      .populate({ path: "userId", select: "firstName email" })
+      .populate({ path: "promoCodeId", select: "code expiresAt createdAt discountType discount" })
+      .populate({ path: "bookingId", select: "_id" })
+      .sort({ usedAt: -1 });
+
+    // 5️⃣ Format usage for response
+    const usageData = allUsage.map(u => ({
+      bookingId: u.bookingId?._id || null,
+      promoCodeName: u.promoCodeId?.code || "",
+      promoCodeDiscount: u.promoCodeId?.discount || 0,
+      userName: u.userId?.firstName || "",
+      userEmail: u.userId?.email || "",
+      discountApplied: u.discountApplied,
+      usedAt: u.usedAt,
+      expireAt: u.promoCodeId?.expiresAt || null,   // <- corrected
+  createAt: u.promoCodeId?.createdAt || null
+
+    }));
+
+    // 6️⃣ Return response
     return res.status(200).json({
       success: true,
       message: "Promo codes fetched successfully",
+      totalIssuedDiscount,
+      totalDiscountGiven,
       data: promos,
+      usageData
     });
+
   } catch (error) {
     next(error);
   }
