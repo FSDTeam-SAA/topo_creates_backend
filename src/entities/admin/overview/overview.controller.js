@@ -1,5 +1,5 @@
 import { generateResponse } from "../../../lib/responseFormate.js";
-import { getAdminDashboardStatsService, getRevenueTrendsService, topDressesService, topLendersService } from "./overview.service.js";
+import { getAdminDashboardStatsService, getBookingByIdService, getBookingStatsService, getRevenueTrendsService, topDressesService, topLendersService } from "./overview.service.js";
 
 
 export const getAdminDashboardStats = async (req, res) => {
@@ -65,3 +65,43 @@ export const topDressesController = async (req, res) => {
   }
 };
 
+/** Booking stats in admin dashboard */
+
+
+export const getBookingStatsController = async (req, res, next) => {
+  try {
+    const data = await getBookingStatsService(req.query);
+
+    res.status(200).json({
+      success: true,
+      message: "Booking stats fetched successfully",
+      meta: {
+        page: Number(req.query.page) || 1,
+        limit: Number(req.query.limit) || 10
+      },
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const getBookingByIdController = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Call service
+    const booking = await getBookingByIdService(id);
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: "Booking fetched successfully",
+      data: booking
+    });
+  } catch (error) {
+    // Pass error to global error handler
+    next(error);
+  }
+};

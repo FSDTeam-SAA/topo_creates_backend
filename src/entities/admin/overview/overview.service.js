@@ -1,7 +1,9 @@
+import mongoose from "mongoose";
 import { createPaginationInfo } from "../../../lib/pagination.js";
 import User from "../../auth/auth.model.js";
 import { Booking } from "../../booking/booking.model.js";
 import { Dispute } from "../../dispute/dispute.model.js";
+import payOutModel from "../../lender/payOut/payOut.model.js";
 import Payment from "../../Payment/Booking/payment.model.js";
 
 
@@ -320,5 +322,155 @@ export const topDressesService = async (page, limit) => {
   return {
     results: paginatedData,
     paginationInfo
+  };
+};
+
+
+/** Booking analytics in admin dashboard */
+
+
+
+
+export const getBookingStatsService = async (query) => {
+  const {
+    search,
+    month,
+    year,
+    page = 1,
+    limit = 10
+  } = query;
+
+  const skip = (page - 1) * limit;
+
+  // 🔎 Search filter
+  let matchStage = {};
+
+  if (search) {
+    matchStage.$or = [
+      { dressName: { $regex: search, $options: "i" } },
+      { customer: { $regex: search, $options: "i" } }
+    ];
+  }
+
+  // 📅 Month-wise filter
+  if (month && year) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 1);
+
+    matchStage.createdAt = {
+      $gte: startDate,
+      $lt: endDate
+    };
+  }
+
+ const result = await Booking.aggregate([
+  { $match: matchStage },
+
+  {
+    $lookup: {
+      from: "payouts",
+      localField: "_id",
+      foreignField: "bookingId",
+      as: "payouts"
+    }
+  },
+
+  // ✅ Compute revenue per booking
+  {
+    $addFields: {
+      bookingRevenue: {
+        $sum: {
+          $map: {
+            input: {
+              $filter: {
+                input: "$payouts",
+                as: "p",
+                cond: { $eq: ["$$p.status", "paid"] }
+              }
+            },
+            as: "paidPayout",
+            in: {
+              $subtract: [
+                "$$paidPayout.bookingAmount",
+                { $ifNull: ["$$paidPayout.requestedAmount", 0] }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+
+  // 📊 Global stats
+  {
+    $group: {
+      _id: null,
+
+      totalBookings: { $sum: 1 },
+      totalBookingAmount: { $sum: "$totalAmount" },
+
+      // ✅ CORRECT revenue
+      totalRevenue: { $sum: "$bookingRevenue" },
+
+      pendingDeliveries: {
+        $sum: {
+          $cond: [
+            { $ne: ["$deliveryStatus", "completed"] },
+            1,
+            0
+          ]
+        }
+      },
+
+      bookings: { $push: "$$ROOT" }
+    }
+  },
+
+  // 📑 Pagination
+  {
+    $project: {
+      _id: 0,
+      totalBookings: 1,
+      totalBookingAmount: 1,
+      totalRevenue: 1,
+      pendingDeliveries: 1,
+      bookings: { $slice: ["$bookings", skip, Number(limit)] }
+    }
+  }
+]);
+
+  return result[0] || {
+    bookings: [],
+    totalBookings: 0,
+    totalBookingAmount: 0,
+    totalRevenue: 0,
+    pendingDeliveries: 0
+  };
+};
+
+
+export const getBookingByIdService = async (bookingId) => {
+  if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+    throw new Error("Invalid booking ID");
+  }
+
+  const bookingObjectId =new  mongoose.Types.ObjectId(bookingId);
+
+  const booking = await Booking.findById(bookingObjectId)
+    .populate("customer", "firstName lastName email")
+    .populate("allocatedLender.lenderId", "firstName lastName email")
+    .lean();
+
+  if (!booking) {
+    throw new Error("Booking not found");
+  }
+
+  const payouts = await payOutModel.find({ bookingId: bookingObjectId }).lean();
+  const disputes = await Dispute.find({ booking: bookingObjectId }).lean();
+
+  return {
+    ...booking,
+    payouts,
+    disputes
   };
 };
