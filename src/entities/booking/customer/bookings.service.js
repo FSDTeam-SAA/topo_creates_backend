@@ -68,7 +68,7 @@ const lender = selectedLender[0];
 
   // --- Find the listing for this lender among the MasterDress listings ---
   const lenderListing = await Listing.findOne({
-    _id: { $in: masterDress.listingIds },  // Only listings for this MasterDress
+    _id: { $in: masterDress.listingIds },
     lenderId: new mongoose.Types.ObjectId(lender._id),
     isActive: true,
     approvalStatus: 'approved'
@@ -81,7 +81,7 @@ const lender = selectedLender[0];
     lenderId: lender._id,
     email: lender.email,
     distance: lender.distance,
-    location: lender.location, // as sent in body
+    location: lender.location, 
     allocationType: 'LocalPickup',
     price: rentalDurationDays <= 4
       ? lenderListing.rentalPrice.fourDays

@@ -38,7 +38,7 @@ export const createPayoutRequestService = async ({ lenderId, bookingId }) => {
   // 4️⃣ Calculate commission and requested amount
   const commission = plan.commission || 0;
   const bookingAmount = booking.totalAmount;
-  const requestedAmount = bookingAmount - (bookingAmount * commission) / 100;
+  const requestedAmount = booking.lenderPrice - (booking.lenderPrice * commission) / 100;
 
   // 5️⃣ Save payout request
   const payout = await payOutModel.create({
