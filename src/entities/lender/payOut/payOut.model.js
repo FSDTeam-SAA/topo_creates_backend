@@ -22,6 +22,11 @@ const payoutSchema = new Schema(
       
 
     },
+    adminsProfit:{
+      type: Number,
+      required: true,
+
+    },
 
     requestedAmount: {
       type: Number,
@@ -51,7 +56,8 @@ const payoutSchema = new Schema(
   { timestamps: true }
 );
 
-
+payoutSchema.index({ lenderId: 1, status: 1 });
+payoutSchema.index({ lenderId: 1, createdAt: -1 });
 
 export default mongoose.model('Payout', payoutSchema);
 

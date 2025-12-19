@@ -39,12 +39,14 @@ export const createPayoutRequestService = async ({ lenderId, bookingId }) => {
   const commission = plan.commission || 0;
   const bookingAmount = booking.totalAmount;
   const requestedAmount = booking.lenderPrice - (booking.lenderPrice * commission) / 100;
+  const adminsProfit=(booking.lenderPrice * commission) / 100
 
   // 5️⃣ Save payout request
   const payout = await payOutModel.create({
     lenderId,
     lenderPrice:booking.lenderPrice,
     bookingId: booking._id,
+    adminsProfit,
     bookingAmount,
     requestedAmount,
     commission,

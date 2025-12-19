@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import payOutModel from "../../lender/payOut/payOut.model.js";
+import Payment from "../../Payment/Booking/payment.model.js";
 const Booking = mongoose.model("Booking");
 const User = mongoose.model("User");
 
@@ -83,117 +84,342 @@ export const getBookingFinanceStatsController = async (req, res) => {
 
 
 
-/**
- * @desc    Get all payout requests with full lender & booking info
- * @route   GET /api/admin/payouts
- * @access  Admin
- */
-export const getAllPayoutsController = async (req, res) => {
+
+export const lenderPayoutStats = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
-    const search = req.query.search || "";
+    // ==============================
+    // 1️⃣ Parse query params
+    // ==============================
+    const { search, fromDate, toDate, status, page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const pageSize = parseInt(limit);
 
-    const pipeline = [
-      // Lookup Booking info
-      { $lookup: { from: "bookings", localField: "bookingId", foreignField: "_id", as: "booking" } },
-      { $unwind: "$booking" },
+    // ==============================
+    // 2️⃣ Build query filters
+    // ==============================
+    const query = {};
 
-      // Lookup Lender info
-      { $lookup: { from: "users", localField: "lenderId", foreignField: "_id", as: "lender" } },
-      { $unwind: "$lender" },
-    ];
-
-    // Search
-    if (search) {
-      const objectIdSearch = mongoose.Types.ObjectId.isValid(search)
-        ? new mongoose.Types.ObjectId(search)
-        : null;
-
-      pipeline.push({
-        $match: {
-          $or: [
-            { _id: objectIdSearch },
-            { bookingId: objectIdSearch },
-            { lenderId: objectIdSearch },
-            { status: { $regex: search, $options: "i" } },
-            { "lender.name": { $regex: search, $options: "i" } },
-            { "lender.email": { $regex: search, $options: "i" } },
-            { "booking.bookingAmount": isNaN(search) ? -1 : parseFloat(search) },
-          ],
-        },
-      });
+    // Date filter
+    if (fromDate || toDate) {
+      query.requestedAt = {};
+      if (fromDate) query.requestedAt.$gte = new Date(fromDate);
+      if (toDate) query.requestedAt.$lte = new Date(toDate);
     }
 
-    // Count total after search
-    const totalCountPipeline = [...pipeline, { $count: "count" }];
-    const totalCountResult = await payOutModel.aggregate(totalCountPipeline);
-    const totalCount = totalCountResult[0]?.count || 0;
+    // Status filter
+    if (status && ["paid", "pending"].includes(status.toLowerCase())) {
+      query.status = status.toLowerCase();
+    }
 
-    // Sort, skip, limit
-    pipeline.push({ $sort: { requestedAt: -1 } });
-    pipeline.push({ $skip: skip });
-    pipeline.push({ $limit: limit });
+    // Search by lenderId, name, or email
+    if (search) {
+      const users = await User.find({
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } }
+        ]
+      }).select("_id");
 
-    const payouts = await payOutModel.aggregate(pipeline);
+      const lenderIds = users.map((u) => u._id.toString());
+      query.$or = [
+        { lenderId: { $in: lenderIds } },
+        { lenderId: { $regex: search, $options: "i" } } // direct ID search
+      ];
+    }
 
-    // Global stats
-    let globalTotalRequested = 0;
-    let globalTotalPaid = 0;
-    let globalTotalPending = 0;
+    // ==============================
+    // 3️⃣ Fetch payouts with lender info
+    // ==============================
+    const payouts = await payOutModel
+      .find(query)
+      .populate("lenderId", "firstName lastName email")
+      .sort({ requestedAt: -1 });
 
-    // Per-lender stats
-    const lenderStats = {};
+    // ==============================
+    // 4️⃣ Calculate per-lender stats
+    // ==============================
+    const perLenderMap = {};
 
     payouts.forEach((p) => {
-      globalTotalRequested += p.requestedAmount;
-      if (p.status === "paid") globalTotalPaid += p.requestedAmount;
-      if (p.status === "pending") globalTotalPending += p.requestedAmount;
+      const lenderId = p.lenderId._id.toString();
 
-      const lenderId = p.lender._id.toString();
-      if (!lenderStats[lenderId]) {
-        lenderStats[lenderId] = {
-          lenderId: p.lender._id,
-          lenderName: p.lender.name,
-          lenderEmail: p.lender.email,
-          totalRequestedAmount: 0,
-          totalPaidAmount: 0,
-          totalPendingAmount: 0,
-          totalRevenue: 0, // bookingAmount - requestedAmount
+      if (!perLenderMap[lenderId]) {
+        perLenderMap[lenderId] = {
+          _id: lenderId,
+          name: p.lenderId.firstName,
+          email: p.lenderId.email,
+          totalRevenue: 0,
+          totalPaid: 0,
+          pendingPayout: 0,
+          avgPayout: 0,
+          totalRequests: 0
         };
       }
 
-      lenderStats[lenderId].totalRequestedAmount += p.requestedAmount;
-      if (p.status === "paid") lenderStats[lenderId].totalPaidAmount += p.requestedAmount;
-      if (p.status === "pending") lenderStats[lenderId].totalPendingAmount += p.requestedAmount;
-      lenderStats[lenderId].totalRevenue += p.booking.bookingAmount - p.requestedAmount;
+      const revenue = (p.bookingAmount - p.lenderPrice) + (p.adminsProfit || 0);
+      perLenderMap[lenderId].totalRevenue += revenue;
+
+      if (p.status === "paid") perLenderMap[lenderId].totalPaid += p.requestedAmount;
+      if (p.status === "pending") perLenderMap[lenderId].pendingPayout += p.requestedAmount;
+
+      perLenderMap[lenderId].avgPayout += p.requestedAmount;
+      perLenderMap[lenderId].totalRequests += 1;
     });
 
-    const avgRequestedAmount = payouts.length ? globalTotalRequested / payouts.length : 0;
+    const perLender = Object.values(perLenderMap).map((lender) => {
+      lender.avgPayout = lender.totalRequests ? lender.avgPayout / lender.totalRequests : 0;
+      return lender;
+    });
+
+    // ==============================
+    // 5️⃣ Apply sorting and pagination
+    // ==============================
+    perLender.sort((a, b) => b.totalRevenue - a.totalRevenue);
+    const totalCount = perLender.length;
+    const paginated = perLender.slice((pageNum - 1) * pageSize, pageNum * pageSize);
+
+    // ==============================
+    // 6️⃣ Calculate global stats
+    // ==============================
+    const globalStats = {
+      totalRevenue: 0,
+      totalPaid: 0,
+      totalPending: 0,
+      avgPayout: 0
+    };
+
+    if (payouts.length) {
+      payouts.forEach((p) => {
+        const revenue = (p.bookingAmount - p.lenderPrice) + (p.adminsProfit || 0);
+        globalStats.totalRevenue += revenue;
+        if (p.status === "paid") globalStats.totalPaid += p.requestedAmount;
+        if (p.status === "pending") globalStats.totalPending += p.requestedAmount;
+        globalStats.avgPayout += p.requestedAmount;
+      });
+      globalStats.avgPayout = payouts.length ? globalStats.avgPayout / payouts.length : 0;
+    }
+
+    // ==============================
+    // 7️⃣ Return structured response
+    // ==============================
+    return res.status(200).json({
+      success: true,
+      totalCount,
+      currentPage: pageNum,
+      totalPages: Math.ceil(totalCount / pageSize),
+      itemsPerPage: pageSize,
+      perLender: paginated,
+      global: globalStats
+    });
+
+  } catch (error) {
+    console.error("❌ Error fetching lender payout stats:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+
+
+// export const subscriptionAnalytics = async (req, res) => {
+//   try {
+//     const { fromDate, toDate } = req.query;
+
+//     const dateFilter = {};
+//     if (fromDate) dateFilter.$gte = new Date(fromDate);
+//     if (toDate) dateFilter.$lte = new Date(toDate);
+
+//     const query = {};
+//     if (fromDate || toDate) query.createdAt = dateFilter;
+
+//     // Fetch subscriptions with customer populated
+//   const subscriptions = await Payment.find(query)
+//   .populate("customerId") // full user object
+//   .populate({
+//     path: "subscription.planId",
+//     model: "SubscriptionPlan",
+//     select: "name price durationDays",
+//   })
+//   .sort({ createdAt: -1 });
+
+//     // Initialize arrays and counters
+//     const newSignUps = [];
+//     const churnedUsers = [];
+//     const activeSubscribers = [];
+//     let totalMRR = 0;
+
+//     // MRR trend
+//     const mrrTrendMap = {};
+
+//     subscriptions.forEach((sub) => {
+//       const customer = sub.customerId;
+//       const name = customer ? `${customer.firstName || ""} ${customer.lastName || ""}`.trim() : "";
+
+//       const paidAmount = Number(sub.amount) || 0;
+
+//       // MRR trend per month
+//       const yearMonth = sub.createdAt.toISOString().slice(0, 7); // YYYY-MM
+//       if (!mrrTrendMap[yearMonth]) mrrTrendMap[yearMonth] = 0;
+//       if (sub.status === "Paid") mrrTrendMap[yearMonth] += paidAmount;
+
+//       // Total MRR
+//       if (sub.status === "Paid") totalMRR += paidAmount;
+
+//      // ✅ Get subscription info from user model
+//   const subscriptionStart = customer?.subscription?.subscriptionStartDate || sub.createdAt;
+//   const subscriptionEnd = customer?.subscription?.subscriptionExpireDate || null;
+//   const planId = customer?.subscription?.planId?._id;
+//   const planName = customer?.subscription?.planId?.name || "N/A";
+
+//       // Prepare subscription object
+//       const subData = {
+//         _id: sub._id,
+//         customerId: customer?._id,
+//         name,
+        
+//         subscriptionStart,
+//         subscriptionEnd,
+//         amount: paidAmount,
+//         status: sub.status,
+//       };
+
+//       // Categorize
+//       if (sub.status === "Paid") newSignUps.push(subData);
+//       if (sub.status === "Cancelled") churnedUsers.push(subData);
+//       if (sub.status === "Paid" || sub.status === "Active") activeSubscribers.push(subData);
+//     });
+
+//     // Convert MRR trend map to array sorted by month
+//     const mrrTrend = Object.keys(mrrTrendMap)
+//       .sort()
+//       .map((month) => ({
+//         month,
+//         mrr: mrrTrendMap[month],
+//       }));
+
+//     return res.status(200).json({
+//       success: true,
+//       totalMRR,
+//       totalNewSignUps: newSignUps.length,
+//       totalActiveSubscribers: activeSubscribers.length,
+//       totalCancelledSubscribers: churnedUsers.length,
+//       mrrTrend,
+//       newSignUps,
+//       churnedUsers,
+//       activeSubscribers,
+//     });
+//   } catch (err) {
+//     console.error("❌ Error fetching subscription analytics:", err);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server Error",
+//       error: err.message,
+//     });
+//   }
+// };
+
+
+export const subscriptionAnalytics = async (req, res) => {
+  try {
+    const { fromDate, toDate } = req.query;
+
+    const dateFilter = {};
+    if (fromDate) dateFilter.$gte = new Date(fromDate);
+    if (toDate) dateFilter.$lte = new Date(toDate);
+
+    const query = { type: "subscription" }; // Filter by type as per your JSON
+    if (fromDate || toDate) query.createdAt = dateFilter;
+
+    // Fetch payments and deeply populate the plan inside the customer object
+    const subscriptions = await Payment.find(query)
+      .populate({
+        path: "customerId",
+        populate: {
+          path: "subscription.planId",
+          model: "SubscriptionPlan",
+          select: "name price durationDays",
+        },
+      })
+      .sort({ createdAt: -1 });
+
+    const newSignUps = [];
+    const churnedUsers = [];
+    const activeSubscribers = [];
+    let totalMRR = 0;
+    const mrrTrendMap = {};
+
+    subscriptions.forEach((sub) => {
+      const customer = sub.customerId;
+      
+      // Use fullName from JSON, fallback to first/last if needed
+      const name = customer?.fullName || 
+                   `${customer?.firstName || ""} ${customer?.lastName || ""}`.trim() || 
+                   "Unknown User";
+
+      const paidAmount = Number(sub.amount) || 0;
+
+      // MRR logic
+      const yearMonth = sub.createdAt.toISOString().slice(0, 7);
+      if (!mrrTrendMap[yearMonth]) mrrTrendMap[yearMonth] = 0;
+      
+      if (sub.status === "Paid") {
+        mrrTrendMap[yearMonth] += paidAmount;
+        totalMRR += paidAmount;
+      }
+
+      // Map subscription info from the Customer/User model
+      const subStart = customer?.subscriptionStartDate || sub.createdAt;
+      const subEnd = customer?.subscriptionExpireDate || null;
+      const planName = customer?.subscription?.planId?.name || "N/A";
+
+      const subData = {
+        _id: sub._id,
+        customerId: customer?._id,
+        name,
+        planName,
+        subscriptionStart: subStart,
+        subscriptionEnd: subEnd,
+        amount: paidAmount,
+        status: sub.status,
+      };
+
+      // Categorize based on Payment Status
+      if (sub.status === "Paid") newSignUps.push(subData);
+      if (sub.status === "Cancelled") churnedUsers.push(subData);
+      
+      // Use User's 'hasActiveSubscription' flag or Payment status for active list
+      if (sub.status === "Paid" || customer?.hasActiveSubscription) {
+          activeSubscribers.push(subData);
+      }
+    });
+
+    const mrrTrend = Object.keys(mrrTrendMap)
+      .sort()
+      .map((month) => ({
+        month,
+        mrr: mrrTrendMap[month],
+      }));
 
     return res.status(200).json({
-      status: true,
-      message: "All payout requests retrieved successfully",
-      summary: {
-        totalCount,
-        page,
-        limit,
-        globalTotalRequested,
-        globalTotalPaid,
-        globalTotalPending,
-        avgRequestedAmount,
-      },
-      data: payouts,
-      lenderStats: Object.values(lenderStats),
+      success: true,
+      totalMRR,
+      totalNewSignUps: newSignUps.length,
+      totalActiveSubscribers: activeSubscribers.length,
+      totalCancelledSubscribers: churnedUsers.length,
+      mrrTrend,
+      newSignUps,
+      churnedUsers,
+      activeSubscribers,
     });
   } catch (err) {
-    console.error("❌ Error fetching payout requests:", err);
+    console.error("❌ Error fetching subscription analytics:", err);
     return res.status(500).json({
-      status: false,
+      success: false,
       message: "Server Error",
       error: err.message,
     });
   }
 };
-
