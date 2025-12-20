@@ -1,4 +1,5 @@
 import { generateResponse } from '../../../lib/responseFormate.js';
+import promoCodeModel from '../../admin/promoCode/promoCode.model.js';
 import { createBookingService, deleteBookingService, getAllBookingsService, getBookingByIdService, getLenderBookingStatsService, getMasterDressByNameService, getPayoutByBookingIdService, getUserBookingsService, updateBookingService} from '../customer/bookings.service.js';
 
 
@@ -165,3 +166,50 @@ export const getMasterDressByNameController = async (req, res, next) => {
 };
 
 
+// apply promo code 
+
+export const validatePromoCodeController = async (req, res) => {
+  try {
+    const { promoCode } = req.body;
+
+    if (!promoCode) {
+      return res.status(400).json({
+        status: false,
+        message: "Promo code is required"
+      });
+    }
+
+    const appliedPromo = await promoCodeModel.findOne({
+      code: promoCode.trim(),
+      isActive: true,
+      expiresAt: { $gte: new Date() }
+    });
+
+    if (!appliedPromo) {
+      return res.status(404).json({
+        status: false,
+        message: "Invalid or expired promo code"
+      });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "Promo code applied successfully",
+      data: {
+        id: appliedPromo._id,
+        code: appliedPromo.code,
+        discountType: appliedPromo.discountType,
+        discountValue: appliedPromo.discount,
+        expiresAt: appliedPromo.expiresAt
+      }
+    });
+  } catch (error) {
+    console.error("❌ Promo validation error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};

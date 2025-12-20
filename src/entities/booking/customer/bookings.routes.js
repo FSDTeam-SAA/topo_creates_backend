@@ -10,6 +10,7 @@ import {
   getPayoutByBookingIdController,
   getUserBookingsController,
   updateBookingController,
+  validatePromoCodeController,
 
 } from "./bookings.controller.js";
 import { verifyToken, userMiddleware, lenderMiddleware, userAdminLenderSuperAdminMiddleware, adminLenderSuperadminMiddleware } from "../../../core/middlewares/authMiddleware.js"; 
@@ -23,6 +24,7 @@ router.post("/create", verifyToken, userMiddleware, createBookingController);
 router.post('/manual', verifyToken, adminLenderSuperadminMiddleware, createManualBookingController);
 router.post('/accept-reject',verifyToken, lenderMiddleware, acceptOrRejectBookingController);
 router.get("/all", verifyToken, userAdminLenderSuperAdminMiddleware, getAllBookingsController);
+router.post("/promo-validate", validatePromoCodeController);
 router.get('/stats',getLenderBookingStatsController)
 router.get('/search', getMasterDressByNameController);
 router.get('/allocated', verifyToken, lenderMiddleware, getAllocatedBookingsForLenderController);
