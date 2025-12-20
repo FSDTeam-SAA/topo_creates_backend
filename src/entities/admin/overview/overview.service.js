@@ -5,6 +5,7 @@ import { Booking } from "../../booking/booking.model.js";
 import { Dispute } from "../../dispute/dispute.model.js";
 import payOutModel from "../../lender/payOut/payOut.model.js";
 import Payment from "../../Payment/Booking/payment.model.js";
+import promoCodeModel from "../promoCode/promoCode.model.js";
 
 
 export const getAdminDashboardStatsService = async (startDate, endDate) => {
@@ -472,5 +473,213 @@ export const getBookingByIdService = async (bookingId) => {
     ...booking,
     payouts,
     disputes
+  };
+};
+
+// revenue breakdown
+
+export const getPlatformStatsService = async () => {
+  /* =======================
+     OVERALL STATS
+  ======================= */
+
+  // Subscription Revenue
+  const subscriptionAgg = await Payment.aggregate([
+    { $match: { type: "subscription", status: "Paid" } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ]);
+  const subscriptionRevenue = subscriptionAgg[0]?.total || 0;
+
+  // Booking Platform Revenue
+  const bookingRevenueAgg = await payOutModel.aggregate([
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: {
+            $add: [
+              { $subtract: ["$bookingAmount", "$lenderPrice"] },
+              "$adminsProfit",
+            ],
+          },
+        },
+      },
+    },
+  ]);
+  const bookingPlatformRevenue = bookingRevenueAgg[0]?.total || 0;
+
+  const platformRevenue =
+    bookingPlatformRevenue + subscriptionRevenue;
+
+  // Paid Payout
+  const paidPayoutAgg = await payOutModel.aggregate([
+    { $match: { status: "paid" } },
+    { $group: { _id: null, total: { $sum: "$requestedAmount" } } },
+  ]);
+  const totalLenderPayout = paidPayoutAgg[0]?.total || 0;
+
+  // Pending Payout
+  const pendingPayoutAgg = await payOutModel.aggregate([
+    { $match: { status: "pending" } },
+    { $group: { _id: null, total: { $sum: "$requestedAmount" } } },
+  ]);
+  const pendingPayout = pendingPayoutAgg[0]?.total || 0;
+
+  // Commission Earned
+  const commissionAgg = await payOutModel.aggregate([
+    { $group: { _id: null, total: { $sum: "$adminsProfit" } } },
+  ]);
+  const commissionEarned = commissionAgg[0]?.total || 0;
+
+  // Credit Issued
+  const creditAgg = await promoCodeModel.aggregate([
+    { $group: { _id: null, total: { $sum: "$discount" } } },
+  ]);
+  const totalCreditIssued = creditAgg[0]?.total || 0;
+
+  // Insurance
+  const insuranceAgg = await Booking.aggregate([
+    { $group: { _id: null, total: { $sum: "$insuranceFee" } } },
+  ]);
+  const insuranceCollected = insuranceAgg[0]?.total || 0;
+
+  // Shipping
+  const shippingAgg = await Booking.aggregate([
+    { $group: { _id: null, total: { $sum: "$shippingFee" } } },
+  ]);
+  const shippingFeeCollected = shippingAgg[0]?.total || 0;
+
+  /* =======================
+     MONTHLY STATS
+  ======================= */
+
+  const monthlyPayoutAgg = await payOutModel.aggregate([
+    {
+      $group: {
+        _id: {
+          year: { $year: "$createdAt" },
+          month: { $month: "$createdAt" },
+        },
+        bookingPlatformRevenue: {
+          $sum: {
+            $add: [
+              { $subtract: ["$bookingAmount", "$lenderPrice"] },
+              "$adminsProfit",
+            ],
+          },
+        },
+        totalLenderPayout: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "paid"] }, "$requestedAmount", 0],
+          },
+        },
+        pendingPayout: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "pending"] }, "$requestedAmount", 0],
+          },
+        },
+        commissionEarned: { $sum: "$adminsProfit" },
+      },
+    },
+  ]);
+
+  const monthlySubscriptionAgg = await Payment.aggregate([
+    { $match: { type: "subscription", status: "Paid" } },
+    {
+      $group: {
+        _id: {
+          year: { $year: "$createdAt" },
+          month: { $month: "$createdAt" },
+        },
+        subscriptionRevenue: { $sum: "$amount" },
+      },
+    },
+  ]);
+
+  const monthlyPromoAgg = await promoCodeModel.aggregate([
+    {
+      $group: {
+        _id: {
+          year: { $year: "$createdAt" },
+          month: { $month: "$createdAt" },
+        },
+        totalCreditIssued: { $sum: "$discount" },
+      },
+    },
+  ]);
+
+  const monthlyBookingAgg = await Booking.aggregate([
+    {
+      $group: {
+        _id: {
+          year: { $year: "$createdAt" },
+          month: { $month: "$createdAt" },
+        },
+        insuranceCollected: { $sum: "$insuranceFee" },
+        shippingFeeCollected: { $sum: "$shippingFee" },
+      },
+    },
+  ]);
+
+  /* =======================
+     MERGE MONTHLY
+  ======================= */
+
+  const monthlyMap = new Map();
+
+  const merge = (arr) => {
+    arr.forEach((i) => {
+      const key = `${i._id.year}-${i._id.month}`;
+      if (!monthlyMap.has(key)) {
+        monthlyMap.set(key, {
+          year: i._id.year,
+          month: i._id.month,
+          platformRevenue: 0,
+          subscriptionRevenue: 0,
+          totalLenderPayout: 0,
+          pendingPayout: 0,
+          commissionEarned: 0,
+          totalCreditIssued: 0,
+          insuranceCollected: 0,
+          shippingFeeCollected: 0,
+          bookingPlatformRevenue: 0,
+        });
+      }
+      Object.assign(monthlyMap.get(key), i);
+    });
+  };
+
+  merge(monthlyPayoutAgg);
+  merge(monthlySubscriptionAgg);
+  merge(monthlyPromoAgg);
+  merge(monthlyBookingAgg);
+
+  const monthly = Array.from(monthlyMap.values()).map((m) => ({
+    year: m.year,
+    month: m.month,
+    subscriptionRevenue: m.subscriptionRevenue || 0,
+    totalLenderPayout: m.totalLenderPayout || 0,
+    pendingPayout: m.pendingPayout || 0,
+    commissionEarned: m.commissionEarned || 0,
+    totalCreditIssued: m.totalCreditIssued || 0,
+    insuranceCollected: m.insuranceCollected || 0,
+    shippingFeeCollected: m.shippingFeeCollected || 0,
+    platformRevenue:
+      (m.bookingPlatformRevenue || 0) +
+      (m.subscriptionRevenue || 0),
+  }));
+
+  return {
+    overall: {
+      platformRevenue,
+      subscriptionRevenue,
+      totalLenderPayout,
+      pendingPayout,
+      commissionEarned,
+      totalCreditIssued,
+      insuranceCollected,
+      shippingFeeCollected,
+    },
+    monthly,
   };
 };

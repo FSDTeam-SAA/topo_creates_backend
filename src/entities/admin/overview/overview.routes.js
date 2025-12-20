@@ -1,6 +1,6 @@
 import express from "express";
 import { superAdminOrAdminMiddleware, verifyToken } from "../../../core/middlewares/authMiddleware.js";
-import { getAdminDashboardStats, getBookingByIdController, getBookingStatsController, getRevenueTrendsController, topDressesController, topLendersController } from "./overview.controller.js";
+import { getAdminDashboardStats, getBookingByIdController, getBookingStatsController, getPlatformStats, getRevenueTrendsController, topDressesController, topLendersController } from "./overview.controller.js";
 import { getBookingFinanceStatsController, lenderPayoutStats, subscriptionAnalytics} from "./finance.controller.js";
 
 
@@ -16,5 +16,6 @@ router.get("/dashboard/finance/booking-revenue",getBookingFinanceStatsController
 router.get("/dashboard/finance/payout/stats",lenderPayoutStats)
 router.get("/dashboard/finance/subscriptionAnalytics",subscriptionAnalytics)
 router.get("/dashboard/bookings/:id", getBookingByIdController);
+router.get("/dashboard/finance/revenue-breakdown", getPlatformStats);
 export default router;
 
