@@ -6,8 +6,8 @@ const User = mongoose.model("User");
 
 export const getBookingFinanceStatsController = async (req, res) => {
   try {
-    const result = await payOutModel.aggregate([
-      // 1️⃣ Add revenue field and yearMonth
+    const monthlyStats = await payOutModel.aggregate([
+      // 1️⃣ Add revenue & yearMonth
       {
         $addFields: {
           revenue: {
@@ -16,13 +16,20 @@ export const getBookingFinanceStatsController = async (req, res) => {
               {
                 $add: [
                   { $subtract: ["$bookingAmount", "$lenderPrice"] },
-                  { $multiply: ["$lenderPrice", { $divide: ["$commission", 100] }] }
+                  {
+                    $multiply: [
+                      "$lenderPrice",
+                      { $divide: ["$commission", 100] }
+                    ]
+                  }
                 ]
               },
               0
             ]
           },
-          yearMonth: { $dateToString: { format: "%Y-%m", date: "$requestedAt" } }
+          yearMonth: {
+            $dateToString: { format: "%Y-%m", date: "$requestedAt" }
+          }
         }
       },
 
@@ -30,47 +37,79 @@ export const getBookingFinanceStatsController = async (req, res) => {
       {
         $group: {
           _id: "$yearMonth",
-          monthlyRevenue: { $sum: "$revenue" }, // only paid bookings counted in revenue
-          totalBookingAmountAll: { $sum: "$bookingAmount" }, // all bookings for AOV
-          totalOrdersAll: { $sum: 1 }, // total bookings count (paid + unpaid)
+          monthlyRevenue: { $sum: "$revenue" },
+
+          totalBookingAmountAll: { $sum: "$bookingAmount" },
+          totalOrdersAll: { $sum: 1 },
+
           totalPaidOrders: {
             $sum: { $cond: [{ $eq: ["$status", "paid"] }, 1, 0] }
           },
-          totalProfit: { $sum: "$revenue" } // same as monthlyRevenue
+
+          totalProfit: { $sum: "$revenue" }
         }
       },
 
       { $sort: { _id: 1 } }
     ]);
 
-    // 3️⃣ Calculate MoM % change and averages
+    // 3️⃣ Monthly MoM + global accumulators
     let prevRevenue = null;
-    let totalBookingRevenue = 0; // total revenue across all months
-    result.forEach((month) => {
-      // Average Order Value (all bookings)
-      month.avgOrderValue = month.totalBookingAmountAll / month.totalOrdersAll;
 
-      // Average Profit per Order (paid bookings only)
-      month.avgProfitPerOrder = month.totalPaidOrders
-        ? month.totalProfit / month.totalPaidOrders
-     : 0;
+    let globalRevenue = 0;
+    let globalBookingAmount = 0;
+    let globalOrders = 0;
+    let globalPaidOrders = 0;
 
-      // MoM % change (revenue of paid bookings)
-      if (prevRevenue !== null) {
-        month.momChange = ((month.monthlyRevenue - prevRevenue) / prevRevenue) * 100;
-      } else {
-        month.momChange = null; // first month
-      }
+    const monthly = monthlyStats.map((m) => {
+      const momChange =
+        prevRevenue !== null && prevRevenue > 0
+          ? ((m.monthlyRevenue - prevRevenue) / prevRevenue) * 100
+          : null;
 
-      prevRevenue = month.monthlyRevenue;
-      totalBookingRevenue += month.monthlyRevenue;
+      prevRevenue = m.monthlyRevenue;
+
+      globalRevenue += m.monthlyRevenue;
+      globalBookingAmount += m.totalBookingAmountAll;
+      globalOrders += m.totalOrdersAll;
+      globalPaidOrders += m.totalPaidOrders;
+
+      return {
+        month: m._id,
+        revenue: m.monthlyRevenue,
+        momChange
+      };
     });
+
+    // 4️⃣ Global KPIs (top cards)
+    const summary = {
+      totalBookingRevenue: globalRevenue,
+
+      averageOrderValue: globalOrders
+        ? globalBookingAmount / globalOrders
+        : 0,
+
+      averageProfitPerOrder: globalPaidOrders
+        ? globalRevenue / globalPaidOrders
+        : 0,
+
+      momChange:
+        monthly.length >= 2 &&
+        monthly[monthly.length - 2].revenue > 0
+          ? (
+              ((monthly[monthly.length - 1].revenue -
+                monthly[monthly.length - 2].revenue) /
+                monthly[monthly.length - 2].revenue) *
+              100
+            )
+          : null
+    };
 
     return res.status(200).json({
       status: true,
       message: "Booking statistics retrieved successfully",
-      totalBookingRevenue,
-      data: result
+      summary,
+      monthly
     });
   } catch (err) {
     console.error("❌ Error getting booking stats:", err);
@@ -81,6 +120,7 @@ export const getBookingFinanceStatsController = async (req, res) => {
     });
   }
 };
+
 
 
 
