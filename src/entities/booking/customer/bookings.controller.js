@@ -204,7 +204,7 @@ export const validatePromoCodeController = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("❌ Promo validation error:", error);
+    console.error("Promo validation error:", error);
 
     return res.status(500).json({
       status: false,
