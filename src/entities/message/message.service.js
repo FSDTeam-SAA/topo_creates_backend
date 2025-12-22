@@ -2,6 +2,74 @@ import { Message } from "./message.model.js";
 import { io } from "../../app.js"; 
 import { ChatRoom } from "./chatRoom.model.js";
 import { cloudinaryUpload } from "../../lib/cloudinaryUpload.js";
+import { Booking } from "../booking/booking.model.js";
+
+
+export const createBookingChatRoomService = async (bookingId, requesterId) => {
+  const booking = await Booking.findById(bookingId)
+    .populate("customer", "_id")
+    .populate("allocatedLender.lenderId", "_id");
+
+  if (!booking) {
+    throw new Error("Booking not found");
+  }
+
+  if (!booking.allocatedLender?.lenderId) {
+    throw new Error("No lender allocated yet");
+  }
+
+  if (!["Paid", "Succeeded", "Pending"].includes(booking.paymentStatus)) {
+    throw new Error("Payment not completed");
+  }
+
+  const customerId = booking.customer._id;
+  const lenderId = booking.allocatedLender.lenderId._id;
+
+  // Authorization
+  if (
+    requesterId &&
+    ![customerId.toString(), lenderId.toString()].includes(requesterId.toString())
+  ) {
+    throw new Error("Unauthorized access");
+  }
+
+  // 1️⃣ Check existing chat
+  let chatRoom = await ChatRoom.findOne({ bookingId });
+
+  if (chatRoom) {
+    // 🚫 Closed chat cannot be reused
+    if (chatRoom.status === "closed") {
+      throw new Error("Chat room is closed for this booking");
+    }
+
+    return chatRoom;
+  }
+
+  // 2️⃣ Create chatroom (defaults respected)
+chatRoom = await ChatRoom.create({
+    bookingId,
+    participants: [customerId, lenderId],
+    createdBy: customerId,
+
+    // 👇 FORCE SAME STRUCTURE AS OLD DATA
+    lastMessage: "",
+    lastMessageAt: null,
+
+    closedAt: null,
+    closedBy: null,
+
+    flagged: {
+      status: false,
+      reason: "",
+      flaggedBy: null,
+      flaggedAt: null,
+    },
+
+    status: "active",
+  });
+
+  return chatRoom;
+};
 
 
 export const getUserChatRoomsService = async (userId, page, limit) => {
