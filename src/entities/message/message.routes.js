@@ -9,6 +9,7 @@ import {
   deleteMessage,
   markAsRead,
   updateChatRoomStatus,
+  createBookingChatRoomController,
 } from "./message.controller.js";
 import { verifyToken, superAdminOrAdminMiddleware } from "../../core/middlewares/authMiddleware.js";
 import { multerUpload } from "../../core/middlewares/multer.js";
@@ -18,6 +19,12 @@ const router = express.Router();
 
 
 /* ---------------- CHATROOM ROUTES ---------------- */
+
+router.post(
+  "/chatrooms/create-for-booking",
+  verifyToken,
+  createBookingChatRoomController
+);
 
 router.get("/chatrooms", verifyToken, getUserChatRooms);
 

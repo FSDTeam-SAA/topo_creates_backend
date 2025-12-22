@@ -8,8 +8,32 @@ import {
   getAllChatRoomsAdminService,
   getAllChatByRoomIdService,
   updateChatRoomStatusService,
+  createBookingChatRoomService,
 } from "./message.service.js";
 import { generateResponse } from "../../lib/responseFormate.js";
+
+
+export const createBookingChatRoomController = async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+
+    if (!bookingId) {
+      return generateResponse(res, 400, false, "bookingId is required");
+    }
+
+    const data = await createBookingChatRoomService(bookingId, req.user.id);
+
+    return generateResponse(
+      res,
+      201,
+      true,
+      "Chat room created successfully",
+      data
+    );
+  } catch (error) {
+    return generateResponse(res, 500, false, error.message);
+  }
+};
 
 
 export const getUserChatRooms = async (req, res) => {
