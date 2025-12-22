@@ -1,52 +1,52 @@
-import mongoose from "mongoose";
-import { Booking } from "../../booking/booking.model.js";
-import Payment from "./payment.model.js";
-import Stripe from "stripe";
-
+import mongoose from 'mongoose';
+import { Booking } from '../../booking/booking.model.js';
+import Payment from './payment.model.js';
+import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-
-export const createBookingPaymentService = async ({ bookingId, customerId }) => {
+export const createBookingPaymentService = async ({
+  bookingId,
+  customerId
+}) => {
   // Load booking with populated relationships
   const booking = await Booking.findById(bookingId).populate(
-    "customer lender listing"
+    'customer lender listing'
   );
 
-  if (!booking) throw new Error("Booking not found");
-  if (booking.paymentStatus === "Paid")
-    throw new Error("Booking already paid");
+  if (!booking) throw new Error('Booking not found');
+  if (booking.paymentStatus === 'Paid') throw new Error('Booking already paid');
 
   // Find existing Pending payment
   let payment = await Payment.findOne({
     bookingId: booking._id,
-    status: "Pending"
+    status: 'Pending'
   });
 
   // If no pending payment, create one
   if (!payment) {
     payment = await Payment.create({
-      type: "booking",
+      type: 'booking',
       bookingId: booking._id,
       customerId: booking.customer?._id,
       lenderId: booking.lender?._id || null,
       listing: booking.listing?._id || null,
       amount: booking.totalAmount,
-      currency: "aud",
-      status: "Pending"
+      currency: 'aud',
+      status: 'Pending'
     });
   }
 
   // Create Stripe checkout session
   const session = await stripe.checkout.sessions.create(
     {
-      payment_method_types: ["card"],
-      mode: "payment",
+      payment_method_types: ['card'],
+      mode: 'payment',
       customer_email: booking.customer.email,
       line_items: [
         {
           price_data: {
-            currency: "aud",
+            currency: 'aud',
             product_data: {
               name: `Dress Rental`,
               description: `Rental from ${booking.rentalStartDate.toDateString()} to ${booking.rentalEndDate.toDateString()}`
@@ -80,25 +80,12 @@ export const createBookingPaymentService = async ({ bookingId, customerId }) => 
   return session.url;
 };
 
+// Create a Stripe Checkout session for a booking
 
-
-
-
-
-
-
-
-
-
-
-
-
- // Create a Stripe Checkout session for a booking
- 
 // export const createBookingPaymentService = async ({ bookingId, customerId }) => {
 //   const booking = await Booking.findById(bookingId).populate("customer lender listing");
 //   // console.log("bsda",bookingId);
-  
+
 //   if (!booking) throw new Error("Booking not found");
 //   if (booking.paymentStatus === "Paid") throw new Error("Booking already paid");
 
@@ -112,7 +99,7 @@ export const createBookingPaymentService = async ({ bookingId, customerId }) => 
 //       lenderId: booking.lender._id,
 //       listing: booking.listing._id,
 //       amount: booking.totalAmount,
-//       currency: "aud", 
+//       currency: "aud",
 //       status: "Pending",
 //     });
 //   }
@@ -155,19 +142,18 @@ export const createBookingPaymentService = async ({ bookingId, customerId }) => 
 //   return session.url;
 // };
 
-
 export const createSetupIntentService = async (userId) => {
-  const User = mongoose.model("User");
+  const User = mongoose.model('User');
   const user = await User.findById(userId);
 
-  if (!user) throw new Error("User not found");
+  if (!user) throw new Error('User not found');
 
   // 1. Create Stripe Customer if missing
   let stripeCustomerId = user.stripeCustomerId;
   if (!stripeCustomerId) {
     const customer = await stripe.customers.create({
       email: user.email,
-      metadata: { userId: user._id.toString() },
+      metadata: { userId: user._id.toString() }
     });
     stripeCustomerId = customer.id;
     user.stripeCustomerId = customer.id;
@@ -176,12 +162,12 @@ export const createSetupIntentService = async (userId) => {
 
   // 2. Create Stripe Checkout Session for SetupIntent
   const session = await stripe.checkout.sessions.create({
-    mode: "setup",
+    mode: 'setup',
     customer: stripeCustomerId,
-    payment_method_types: ["card"],
-     metadata: { userId: user._id.toString() },
-    success_url: `${process.env.FRONTEND_URL}/payment/success`,
-    cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
+    payment_method_types: ['card'],
+    metadata: { userId: user._id.toString() },
+    success_url: `${process.env.FRONTEND_URL}/booking-success`,
+    cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`
   });
 
   return { url: session.url };
