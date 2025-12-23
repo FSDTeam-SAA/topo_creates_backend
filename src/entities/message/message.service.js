@@ -171,23 +171,28 @@ export const sendMessageService = async (roomId, { sender, message, files }) => 
   const booking = chatRoom.bookingId;
   if (!booking) throw new Error("Associated booking not found");
 
-  // Authorization: only participants or admin can send
-  if (
-    booking.customer.toString() !== sender.toString() &&
-    booking.lender.toString() !== sender.toString()
-  ) {
+  const senderId = sender.toString();
+  const customerId = booking.customer?.toString();
+  const lenderId = booking.allocatedLender?.lenderId?.toString();
+
+  if (![customerId, lenderId].includes(senderId)) {
     throw new Error("You are not authorized to send a message in this room");
   }
 
   if (chatRoom.status === "closed") {
-    throw new Error("This conversation has been closed by the admin. You cannot send new messages.");
+    throw new Error("This conversation has been closed by the admin.");
   }
 
   // Upload attachments
   let attachments = [];
   for (const file of files) {
     try {
-      const upload = await cloudinaryUpload(file.path, file.filename, "chat-attachments");
+      const upload = await cloudinaryUpload(
+        file.path,
+        file.filename,
+        "chat-attachments"
+      );
+
       if (upload?.secure_url) {
         attachments.push({
           url: upload.secure_url,
@@ -206,7 +211,6 @@ export const sendMessageService = async (roomId, { sender, message, files }) => 
     }
   }
 
-  // Save message
   const newMessage = await Message.create({
     chatRoom: chatRoom._id,
     sender,
@@ -214,19 +218,20 @@ export const sendMessageService = async (roomId, { sender, message, files }) => 
     attachments,
   });
 
-  const newMessagePopulated = await newMessage
-    .populate("sender", "firstName lastName profileImage role")
+  const newMessagePopulated = await newMessage.populate(
+    "sender",
+    "firstName lastName profileImage role"
+  );
 
-  // Update chatRoom metadata
   chatRoom.lastMessage = message || (attachments.length ? "📎 Attachment" : "");
   chatRoom.lastMessageAt = new Date();
   await chatRoom.save();
 
-  // Emit via socket
   io.to(`room-${chatRoom._id}`).emit("message:new", newMessagePopulated);
 
   return newMessage;
 };
+
 
 
 export const getMessagesByRoomService = async (roomId, page, limit) => {

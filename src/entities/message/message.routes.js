@@ -11,7 +11,7 @@ import {
   updateChatRoomStatus,
   createBookingChatRoomController,
 } from "./message.controller.js";
-import { verifyToken, superAdminOrAdminMiddleware } from "../../core/middlewares/authMiddleware.js";
+import { verifyToken, superAdminOrAdminMiddleware, userLenderMiddleware } from "../../core/middlewares/authMiddleware.js";
 import { multerUpload } from "../../core/middlewares/multer.js";
 
 
@@ -37,7 +37,7 @@ router.put("/chatrooms/admin/:roomId/status", verifyToken, superAdminOrAdminMidd
 
 /* ---------------- MESSAGE ROUTES ---------------- */
 
-router.post("/", verifyToken, multerUpload([{ name: "attachments", maxCount: 5 }]), sendMessage);
+router.post("/", verifyToken, userLenderMiddleware,  multerUpload([{ name: "attachments", maxCount: 5 }]), sendMessage);
 
 router.get("/:roomId", verifyToken, getMessagesByRoom);
 

@@ -113,6 +113,20 @@ const lenderMiddleware = (req, res, next) => {
 };
 
 
+const userLenderMiddleware = (req, res, next) => {
+  if (!req.user) {
+    return generateResponse(res, 401, false, 'Unauthorized: Lender not found', null);
+  }
+  const { role } = req.user || {};
+
+  if (role !== RoleType.USER && role !== RoleType.LENDER) {
+    return generateResponse(res, 403, false, 'User or Lender access only', null);
+  }
+
+  next();
+};
+
+
 const adminLenderMiddleware = (req, res, next) => {
   if (!req.user) {
     return generateResponse(res, 401, false, 'Unauthorized: Lender not found', null);
@@ -174,4 +188,4 @@ const userAdminLenderSuperAdminMiddleware = (req, res, next) => {
 };
 
 
-export{ userMiddleware, adminMiddleware, lenderMiddleware, adminLenderMiddleware, userAdminLenderMiddleware, superAdminOrAdminMiddleware, superadminMiddleware, userAdminLenderSuperAdminMiddleware, adminLenderSuperadminMiddleware };
+export{ userMiddleware, adminMiddleware, lenderMiddleware, adminLenderMiddleware, userAdminLenderMiddleware, superAdminOrAdminMiddleware, superadminMiddleware, userLenderMiddleware,  userAdminLenderSuperAdminMiddleware, adminLenderSuperadminMiddleware };
