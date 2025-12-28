@@ -1,9 +1,10 @@
 import express from "express";
-import { getLenderById, sendDeactivationCode, startDeactivation, updateLenderById, verifyDeactivationCode  } from "./account.controller.js";
+import { getLenderById, getLenderByIdWithStats, sendDeactivationCode, startDeactivation, updateLenderById, verifyDeactivationCode  } from "./account.controller.js";
 import { lenderMiddleware, verifyToken } from "../../../core/middlewares/authMiddleware.js";
 
 
 const router = express.Router();
+router.get("/admin/:lenderId",getLenderByIdWithStats);
 
 router.get("/:id", verifyToken, lenderMiddleware, getLenderById);
 router.put("/:id", verifyToken, lenderMiddleware, updateLenderById);

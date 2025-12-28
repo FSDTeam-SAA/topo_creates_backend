@@ -1,5 +1,9 @@
+import Stripe from "stripe";
 import { generateResponse } from "../../../lib/responseFormate.js";
+import User from "../../auth/auth.model.js";
+import payOutModel from "./payOut.model.js";
 import { createPayoutRequestService,getAllPayoutsService, getPayoutByIdService, getPayoutsByLenderService } from "./payOut.service.js";
+import mongoose from "mongoose";
 
 
 export const createPayoutController = async (req, res) => {
@@ -73,5 +77,101 @@ export const getAllPayoutsController = async (req, res) => {
   } catch (err) {
     console.error(err);
     generateResponse(res, 400, false, err.message || "Failed to fetch payouts");
+  }
+};
+
+
+
+/**
+ * Accept payment by admin controller 
+ * it will transfer the requested amount to the lenders account 
+ */
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+export const transferPayout = async (req, res, next) => {
+  try {
+    const { payoutId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(payoutId)) {
+      return res.status(400).json({ message: "Invalid payout ID" });
+    }
+
+    /* =========================
+       1. FETCH PAYOUT
+    ========================= */
+    const payout = await payOutModel.findById(payoutId).lean();
+    if (!payout) {
+      return res.status(404).json({ message: "Payout not found" });
+    }
+
+    if (payout.status === "paid") {
+      return res.status(400).json({ message: "Payout already completed" });
+    }
+
+    /* =========================
+       2. FETCH LENDER
+    ========================= */
+    const lender = await User.findById(payout.lenderId).lean();
+    if (!lender) {
+      return res.status(404).json({ message: "Lender not found" });
+    }
+
+    const {
+      stripeAccountId,
+      chargesEnabled,
+      payoutsEnabled,
+      detailsSubmitted,
+      stripeOnboardingCompleted,
+    } = lender;
+
+    /* =========================
+       3. VALIDATE STRIPE ACCOUNT
+    ========================= */
+    const errors = [];
+    if (!stripeAccountId) errors.push("Missing stripeAccountId");
+    if (!chargesEnabled) errors.push("chargesEnabled is false");
+    if (!payoutsEnabled) errors.push("payoutsEnabled is false");
+    if (!detailsSubmitted) errors.push("detailsSubmitted is false");
+    if (!stripeOnboardingCompleted)
+      errors.push("stripeOnboardingCompleted is false");
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        message: "Stripe account is not ready for payout",
+        errors,
+      });
+    }
+
+    /* =========================
+       4. INITIATE STRIPE TRANSFER
+    ========================= */
+    const transfer = await stripe.transfers.create({
+      amount: payout.requestedAmount * 100, // in cents
+      currency: "aud", // adjust your currency
+      destination: stripeAccountId,
+      metadata: {
+        payoutId: payout._id.toString(),
+        bookingId: payout.bookingId.toString(),
+        lenderId: payout.lenderId.toString(),
+      },
+    });
+
+    /* =========================
+       5. UPDATE PAYOUT STATUS
+    ========================= */
+    await payOutModel.findByIdAndUpdate(payoutId, {
+      status: "paid",
+      updatedAt: new Date(),
+      stripeTransferId: transfer.id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Payout transferred successfully",
+      transfer,
+    });
+  } catch (error) {
+    next(error);
   }
 };

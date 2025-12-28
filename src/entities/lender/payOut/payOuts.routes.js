@@ -1,6 +1,6 @@
 import express from "express";
 import { lenderMiddleware, superAdminOrAdminMiddleware, verifyToken } from "../../../core/middlewares/authMiddleware.js";
-import { createPayoutController, getAllPayoutsController, getPayoutByIdController, getPayoutsByLenderController } from "./payOut.controller.js";
+import { createPayoutController, getAllPayoutsController, getPayoutByIdController, getPayoutsByLenderController, transferPayout } from "./payOut.controller.js";
 
 
 const router = express.Router();
@@ -30,10 +30,15 @@ router.get("/my/:id", verifyToken, getPayoutByIdController);
  */
 
 // 4. Admin views all payouts
+
+/** accept a payout */
+router.post("/transfer/:payoutId", transferPayout);
+
 // GET /api/payouts
 router.get("/all-payouts", verifyToken, superAdminOrAdminMiddleware, getAllPayoutsController);
 
 // 5. Admin views payout details
+
 // GET /api/payouts/:id
 router.get("/:id", verifyToken, superAdminOrAdminMiddleware, getPayoutByIdController);
 

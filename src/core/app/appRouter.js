@@ -30,7 +30,7 @@ import overviewRoutes from '../../entities/lender/overview/overview.routes.js';
 import customerRoutes from '../../entities/admin/customer/customer.routes.js'
 import overviewAdminRoutes from '../../entities/admin/overview/overview.routes.js';
 import promoCode from '../../entities/admin/promoCode/promoCode.routes.js'
-
+import editRoutes from '../../entities/admin/styleByYou/edit.routes.js'
 const router = express.Router();
 
 
@@ -61,7 +61,7 @@ router.use('/v1/banner', bannerRoutes)
 router.use('/v1/testimonoal', testimonialRoutes)
 router.use('/v1/termsAndConditions', termsAndConditionsRoutes); 
 router.use('/v1/homepageSections', homepageSectionsRoutes);
-
+router.use('/v1/admin/edit', editRoutes)
 
 router.use('/v1/lender/overview', overviewRoutes)
 

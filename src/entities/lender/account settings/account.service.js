@@ -1,6 +1,11 @@
+import mongoose from "mongoose";
 import { deactivationOtpEmail } from "../../../lib/deactivationOtpEmail.js";
 import sendEmail from "../../../lib/sendEmail.js";
 import User from "../../auth/auth.model.js";
+import { Dispute } from "../../dispute/dispute.model.js";
+import payOutModel from "../payOut/payOut.model.js";
+import Listing from "../Listings/listings.model.js";
+import { Booking } from "../../booking/booking.model.js";
 
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
