@@ -32,7 +32,7 @@ router.get("/my/:id", verifyToken, getPayoutByIdController);
 // 4. Admin views all payouts
 
 /** accept a payout */
-router.post("/transfer/:payoutId", transferPayout);
+router.post("/transfer/:payoutId", verifyToken, superAdminOrAdminMiddleware, transferPayout);
 
 // GET /api/payouts
 router.get("/all-payouts", verifyToken, superAdminOrAdminMiddleware, getAllPayoutsController);
