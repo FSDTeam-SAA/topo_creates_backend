@@ -22,8 +22,13 @@ export const getHomepageSectionById = async (id) => {
 
 
 export const updateHomepageSection = async (id, data) => {
-  return await HomepageSection.findByIdAndUpdate(id, data, { new: true });
+  return await HomepageSection.findByIdAndUpdate(
+    id,
+    data,
+    { new: true, runValidators: true }
+  );
 };
+
 
 
 export const deleteHomepageSection = async (id) => {
