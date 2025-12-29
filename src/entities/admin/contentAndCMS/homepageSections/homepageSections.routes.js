@@ -15,14 +15,14 @@ const router = express.Router();
 
 router
   .route("/")
-  .post(verifyToken, superAdminOrAdminMiddleware, multerUpload([{ name: "filename", maxCount: 1 }]), createHomepageSection)
+  .post(verifyToken, superAdminOrAdminMiddleware, multerUpload([{ name: "filename", maxCount: 10 }]), createHomepageSection)
   .get(getAllHomepageSections);
 
 
 router
   .route("/:id")
   .get(getHomepageSectionById)
-  .put(verifyToken, superAdminOrAdminMiddleware, multerUpload([{ name: "filename", maxCount: 1 }]), updateHomepageSection)
+  .put(verifyToken, superAdminOrAdminMiddleware, multerUpload([{ name: "filename", maxCount: 10 }]), updateHomepageSection)
   .delete(verifyToken, superAdminOrAdminMiddleware, deleteHomepageSection);
 
   
