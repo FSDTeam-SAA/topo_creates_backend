@@ -9,7 +9,7 @@ import mongoose from "mongoose";
 export const createPayoutController = async (req, res) => {
   try {
     const lenderId = req.user?._id; 
-    // console.log("lenderr",lenderId);
+
     const { bookingId } = req.body; 
     if (!bookingId) {
       return generateResponse(res, 400, false, "Booking ID is required");
