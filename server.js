@@ -4,7 +4,11 @@ import {app,server} from './src/app.js';
 import { mongoURI, port } from './src/core/config/config.js';
 
 mongoose
-  .connect(mongoURI)
+  .connect(mongoURI,{
+    maxPoolSize: 100,   
+  autoIndex: false,
+  serverSelectionTimeoutMS: 5000,
+  })
   .then(() => {
     logger.info('MongoDB connected');
     server.listen(port, () => {

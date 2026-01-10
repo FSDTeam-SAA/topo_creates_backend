@@ -10,7 +10,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-
+import compression from 'compression';
 import logger from './core/config/logger.js';
 import errorHandler from './core/middlewares/errorMiddleware.js';
 import notFound from './core/middlewares/notFound.js';
@@ -39,8 +39,13 @@ app.use(cors({
 }));
 app.use(xssClean());
 app.use(mongoSanitize());
-app.use(morgan('combined'));
+app.use(morgan('combined', {
+  stream: {
+    write: (message) => logger.info(message.trim())
+  }
+}));
 app.use(cookieParser());
+app.use(compression());
 app.use((req, res, next) => {
   if (req.originalUrl.startsWith('/api/v1/webhook/main') ||  req.originalUrl.startsWith('/api/v1/webhook/connected')) {
     // Skip JSON parsing, Stripe needs raw body
@@ -50,6 +55,25 @@ app.use((req, res, next) => {
 });
 
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+
+  res.on('finish', () => {
+    const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
+    const memUsedMB = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
+    logger.info({
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      duration: `${durationMs.toFixed(2)}ms`,
+      memoryMB: memUsedMB,
+      userAgent: req.headers['user-agent'] || ''
+    });
+  });
+
+  next();
+});
+
 
 // Rate limiting
 app.use(globalLimiter);
@@ -58,13 +82,20 @@ app.use(globalLimiter);
 const uploadPath = path.resolve(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadPath));
 
+
 // Home route
-app.get('/', (req, res) => {
-  res.send({ message: 'Server is running' });
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+  });
 });
+
 
 // API routes
 app.use('/api', appRouter);
+
 
 
 

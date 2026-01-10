@@ -431,12 +431,12 @@ export const getAllMasterDresses = async (query) => {
   }
 
 
-  const [data, totalData] = await Promise.all([
+  const [data, totalItems] = await Promise.all([
     MasterDress.find(filter).skip(skip).limit(limit).lean(),
     MasterDress.countDocuments(filter)
   ]);
 
-  const totalItems = await MasterDress.countDocuments(filter);
+  // const totalItems = await MasterDress.countDocuments(filter);
   const totalPages = Math.ceil(totalItems / limit);
 
   return {
