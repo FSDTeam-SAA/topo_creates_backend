@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import logger from './src/core/config/logger.js';
-import {app,server} from './src/app.js';
+import {server} from './src/app.js';
 import { mongoURI, port } from './src/core/config/config.js';
 
 mongoose

@@ -9,6 +9,7 @@ import MasterDress from "../../admin/Lisitngs/ReviewandMain Site Listing/masterD
 import { ChatRoom } from "../../message/chatRoom.model.js";
 import promoCodeModel from "../../admin/promoCode/promoCode.model.js";
 import promoCodeUsageModel from "../promoCodeUsage.model.js";
+import { sendEmail } from "../../../lib/resendEmial.js";
 
 
 export const createBookingService = async ({ userId, role, body }) => {
@@ -225,6 +226,27 @@ if (appliedPromo) {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Send email after successful commit
+try {
+  const emailHtml = `
+    <h2>Booking Confirmation</h2>
+    <p>Hi ${user.fistName || 'Customer'},</p>
+    <p>Your booking for <strong>${masterDress.dressName}</strong> has been confirmed.</p>
+    <p>Rental Duration: ${rentalDurationDays} days</p>
+    <p>Delivery Method: ${deliveryMethod}</p>
+    <p>Total Amount: $${totalAmount.toFixed(2)}</p>
+    <p>Thank you for using MuseGala!</p>
+  `;
+
+  await sendEmail({
+    to: user.email,
+    subject: 'Your Booking Confirmation - MuseGala',
+    html: emailHtml
+  });
+} catch (emailError) {
+  console.error('Failed to send booking email:', emailError);
+}
 
     return booking;
 

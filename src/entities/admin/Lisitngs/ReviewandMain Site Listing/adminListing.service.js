@@ -4,7 +4,6 @@ import { Booking } from '../../../booking/booking.model.js';
 import listings from '../../../lender/Listings/listings.model.js';
 import Listing from '../../../lender/Listings/listings.model.js';
 import MasterDress from './masterDressModel.js';
-import { createPaginationInfo } from '../../../../lib/pagination.js';
 
 // get dress from listing
 export const getApprovedDresses = async (filters, page, limit, skip) => {
