@@ -119,7 +119,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export const initiateRefundController = async (req, res) => {
-  const { disputeId, amount } = req.body; // amount optional for partial refund
+  const { disputeId, amount,reason } = req.body; // amount optional for partial refund
 
   try {
     // 1️⃣ Find dispute
@@ -143,6 +143,7 @@ export const initiateRefundController = async (req, res) => {
     // 4️⃣ Mark booking as "Refund Pending"
     booking.paymentStatus = 'RefundPending';
     booking.refundDetails.push({
+      reason:reason || 'Not mentioned',
       stripeRefundId: refund.id,
       amount: amount ? amount : booking.totalAmount,
       status: 'Pending',
