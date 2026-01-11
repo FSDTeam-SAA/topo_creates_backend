@@ -87,15 +87,16 @@ export const stripeWebhookHandler = async (req, res) => {
       await handleSubscriptionPaymentEvents(event);
     }
   },
-  'charge.refunded': async (event) => {
-    const payment = await Payment.findOne({ "stripe.paymentIntentId": event.data.object.payment_intent });
-    if (!payment) return;
-    if (payment.bookingId) {
-      await handleBookingPaymentEvents(event);
-    } else if (payment.subscription?.planId) {
-      await handleSubscriptionPaymentEvents(event);
-    }
-  },
+ 'charge.refunded': async (event) => {
+  try {
+    // Directly handle booking refund
+    await handleBookingPaymentEvents(event); // or better: rename handler to handleBookingRefunds
+    console.log('✅ charge.refunded event processed for booking');
+  } catch (err) {
+    console.error('❌ Error processing charge.refunded:', err);
+  }
+},
+
 };
 
 

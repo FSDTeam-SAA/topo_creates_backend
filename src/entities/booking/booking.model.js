@@ -93,7 +93,7 @@ paymentErrorMessage: { type: String },
     stripeTransferId: { type: String },
     paymentStatus: {
       type: String,
-      enum: ['Pending','RetryPending', 'Paid','Succeeded', 'Failed', 'Refunded', 'PartiallyRefunded','NotCharged'],
+      enum: ['Pending','RetryPending','RefundPending', 'Paid','Succeeded', 'Failed', 'Refunded', 'PartiallyRefunded','NotCharged'],
       default: 'Pending',
     },
     payoutStatus: {
@@ -103,6 +103,7 @@ paymentErrorMessage: { type: String },
     },
     refundDetails: [
       {
+        refundType:String,
         amount: Number,
         reason: String,
         stripeRefundId: String,

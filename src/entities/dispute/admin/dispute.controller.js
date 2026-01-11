@@ -1,5 +1,8 @@
 import * as disputeService from "./dispute.service.js";
 import { generateResponse } from "../../../lib/responseFormate.js";
+import { Dispute } from "../dispute.model.js";
+import Stripe from "stripe";
+import { Booking } from "../../booking/booking.model.js";
 
 
 export const getAllDisputes = async (req, res, next) => {
@@ -73,5 +76,54 @@ export const submitResolution = async (req, res, next) => {
     return generateResponse(res, 200, true, "Dispute resolved successfully", result);
   } catch (error) {
     next(error);
+  }
+};
+
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-10-16',
+});
+
+export const initiateRefundController = async (req, res) => {
+  const { disputeId, amount } = req.body; // amount optional for partial refund
+
+  try {
+    // 1️⃣ Find dispute
+    const dispute = await Dispute.findById(disputeId);
+    if (!dispute) return res.status(404).json({ error: 'Dispute not found' });
+
+    // 2️⃣ Find related booking
+    const booking = await Booking.findById(dispute.booking).populate('customer');
+    if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+  
+
+    // 3️⃣ Initiate refund on Stripe
+    const refund = await stripe.refunds.create({
+      payment_intent: booking.stripePaymentIntentId,
+      amount: amount ? Math.round(amount * 100) : undefined, // optional partial refund
+    });
+
+    console.log(`✅ Refund initiated: ${refund.id} for Booking ${booking._id}`);
+
+    // 4️⃣ Mark booking as "Refund Pending"
+    booking.paymentStatus = 'RefundPending';
+    booking.refundDetails.push({
+      refundId: refund.id,
+      amount: amount ? amount : booking.totalAmount,
+      status: 'Pending',
+      initiatedAt: new Date(),
+    });
+    await booking.save();
+
+    res.json({
+      message: 'Refund initiated successfully',
+      refundId: refund.id,
+      bookingId: booking._id,
+    });
+
+  } catch (err) {
+    console.error('❌ Error initiating refund:', err);
+    res.status(500).json({ error: err.message || 'Refund failed' });
   }
 };
