@@ -206,6 +206,10 @@ export const handleBookingPaymentEvents = async (event) => {
 
 export const handleBookingRefundEvents = async (event) => {
   try {
+     if (!event?.data?.object) {
+      console.warn('⚠️ Stripe refund event missing data.object', event);
+      return;
+    }
     const charge = event.data.object;
 
     const booking = await Booking.findOne({ stripePaymentIntentId: charge.payment_intent });
