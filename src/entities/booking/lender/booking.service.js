@@ -114,9 +114,14 @@ export const acceptOrRejectBookingService = async ({ bookingId, lenderId, action
     const booking = await Booking.findById(bookingId).session(session);
     if (!booking) throw new Error("Booking not found");
 
-    if (booking.allocatedLender.lenderId.toString() !== lenderId.toString()) {
-      throw new Error("Unauthorized: Not allocated lender");
-    }
+    const allocatedLenderId = booking.allocatedLender?.lenderId;
+if (!allocatedLenderId) {
+  throw new Error("Allocated lender missing for this booking.");
+}
+
+if (allocatedLenderId.toString() !== lenderId.toString()) {
+  throw new Error("Unauthorized: Not allocated lender");
+}
 
     // ------------------------------
     // REJECT BOOKING
@@ -224,7 +229,7 @@ export const acceptOrRejectBookingService = async ({ bookingId, lenderId, action
     // SUCCESS
     // ------------------------------
     booking.paymentStatus = "Paid";
-    booking.paymentIntentId = paymentIntent.id;
+    booking.stripePaymentIntentId = paymentIntent.id;
     booking.deliveryStatus = "AcceptedByLender";
     booking.paymentErrorMessage = null;
 

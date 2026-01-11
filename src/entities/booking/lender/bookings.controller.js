@@ -67,7 +67,7 @@ export const getUpcomingBookingsForLenderController = async (req, res) => {
  export const acceptOrRejectBookingController = async (req, res) => {
   try {
     const { bookingId, action } = req.body;
-    const lenderId = req.user.id;
+    const lenderId = req.user._id;
 
     const result = await acceptOrRejectBookingService({
       bookingId,
