@@ -207,47 +207,57 @@ export const handleBookingPaymentEvents = async (event) => {
 
 export const handleBookingRefundEvents = async (event, processedByUserId = null) => {
   try {
-    if (!event?.data?.object) {
-      console.warn('⚠️ Stripe refund event missing data.object', event);
+    // 1. Safe extraction of the charge object
+    const charge = event?.data?.object;
+    if (!charge) {
+      console.warn('⚠️ Stripe refund event missing data.object');
       return;
     }
 
-    const charge = event.data.object;
-
+    // 2. Find booking using the Payment Intent ID
+    // Note: Ensure your Booking model actually uses the field name 'stripePaymentIntentId'
     const booking = await Booking.findOne({ stripePaymentIntentId: charge.payment_intent });
-    if (!booking) return console.warn(`Booking not found for PaymentIntent ${charge.payment_intent}`);
+    
+    if (!booking) {
+      console.warn(`Booking not found for PaymentIntent ${charge.payment_intent}`);
+      return; 
+    }
 
     const refundedAmount = charge.amount_refunded / 100;
-    const totalAmount = booking.totalAmount;
-    const refundType = refundedAmount === totalAmount ? "Full" : "Partial";
+    const totalAmount = booking.totalAmount || 0;
+    const refundType = refundedAmount >= totalAmount ? "Full" : "Partial";
+
+    // 3. Robust check for Refund ID (Fixes the 'data' undefined error)
+    const stripeRefundId = charge.refunds?.data?.[0]?.id || charge.id || "unknown";
 
     const refundRecord = {
       refundType,
       amount: refundedAmount,
       reason: charge.reason || "Not specified",
-      stripeRefundId: charge.refunds?.data[0]?.id || "unknown",
+      stripeRefundId: stripeRefundId,
       processedAt: new Date(),
-      processedBy: processedByUserId ? mongoose.Types.ObjectId(processedByUserId) : null,
-      status: refundType === "Full" ? "Completed" : "Partial",
+      processedBy: processedByUserId ? new mongoose.Types.ObjectId(processedByUserId) : null,
+      status: "Completed",
     };
 
+    // 4. Update Booking
     booking.refundDetails.push(refundRecord);
+    booking.paymentStatus = refundType === "Full" ? "Refunded" : "PartiallyRefunded";
 
-    booking.paymentStatus = refundType === "Full" ? "Refunded" : "PartialRefunded";
-
+    // Update lender price for partial refunds if necessary
     if (refundType === "Partial" && booking.allocatedLender?.price) {
       const deduction = (booking.allocatedLender.price * refundedAmount) / totalAmount;
       booking.allocatedLender.price = Math.max(booking.allocatedLender.price - deduction, 0);
     }
 
     await booking.save();
+    console.log(`✅ Booking ${booking._id} refund processed: ${refundedAmount} AUD`);
 
-    console.log(`🔄 Booking ${booking._id} refund processed: ${refundedAmount} AUD, type: ${refundType}`);
   } catch (err) {
-    console.error("❌ Error handling booking refund event:", err);
+    // This catch block will now catch errors without crashing the server
+    console.error("❌ Error handling booking refund event:", err.message);
   }
 };
-
 
   
 
