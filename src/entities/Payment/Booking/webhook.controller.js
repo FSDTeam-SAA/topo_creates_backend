@@ -191,51 +191,8 @@ export const handleBookingPaymentEvents = async (event) => {
         break;
       }
 
-      // Refund happened
-  case "charge.refunded": {
-  const charge = event.data.object;
+      
 
-  // 1️⃣ Find booking by Stripe PaymentIntent ID
-  const booking = await Booking.findOne({ stripePaymentIntentId: charge.payment_intent });
-  if (!booking) {
-    console.warn(`Booking not found for PaymentIntent ${charge.payment_intent}`);
-    break; // use break instead of return in switch-case
-  }
-
-  // 2️⃣ Calculate refund amount
-  const refundedAmount = charge.amount_refunded / 100; // Stripe stores amounts in cents
-  const totalAmount = booking.totalAmount;
-
-  // 3️⃣ Determine refund type
-  const refundType = refundedAmount === totalAmount ? 'Full' : 'Partial';
-
-  // 4️⃣ Add refund record to booking
-  const refundRecord = {
-    refundType,
-    amount: refundedAmount,
-    reason: charge.reason || 'Not specified',
-    stripeRefundId: charge.refunds.data[0]?.id || 'unknown',
-    processedAt: new Date(),
-  };
-  booking.refundDetails.push(refundRecord);
-
-  // 5️⃣ Update booking paymentStatus
-  booking.paymentStatus = refundType === 'Full' ? 'Refunded' : 'PartialRefunded';
-
-  // 6️⃣ Adjust lender price if partial refund
-  if (refundType === 'Partial' && booking.allocatedLender?.price) {
-    const deduction = (booking.allocatedLender.price * refundedAmount) / totalAmount;
-    booking.allocatedLender.price = Math.max(booking.allocatedLender.price - deduction, 0);
-  }
-
-  await booking.save();
-
-  console.log(
-    `🔄 Booking ${booking._id} refund processed: ${refundedAmount} AUD, type: ${refundType}, paymentStatus: ${booking.paymentStatus}`
-  );
-
-  break; // end of this case
-}
 
       default:
         console.log(`ℹ️ Unhandled event type: ${event.type}`);
@@ -244,6 +201,44 @@ export const handleBookingPaymentEvents = async (event) => {
     console.error(`❌ Error handling Stripe event ${event.type}:`, err);
   }
 }
+
+// Payment/Booking/refund.handler.js
+
+export const handleBookingRefundEvents = async (event) => {
+  try {
+    const charge = event.data.object;
+
+    const booking = await Booking.findOne({ stripePaymentIntentId: charge.payment_intent });
+    if (!booking) return console.warn(`Booking not found for PaymentIntent ${charge.payment_intent}`);
+
+    const refundedAmount = charge.amount_refunded / 100;
+    const totalAmount = booking.totalAmount;
+    const refundType = refundedAmount === totalAmount ? "Full" : "Partial";
+
+    const refundRecord = {
+      refundType,
+      amount: refundedAmount,
+      reason: charge.reason || "Not specified",
+      stripeRefundId: charge.refunds.data[0]?.id || "unknown",
+      processedAt: new Date(),
+    };
+    booking.refundDetails.push(refundRecord);
+
+    booking.paymentStatus = refundType === "Full" ? "Refunded" : "PartialRefunded";
+
+    if (refundType === "Partial" && booking.allocatedLender?.price) {
+      const deduction = (booking.allocatedLender.price * refundedAmount) / totalAmount;
+      booking.allocatedLender.price = Math.max(booking.allocatedLender.price - deduction, 0);
+    }
+
+    await booking.save();
+
+    console.log(`🔄 Booking ${booking._id} refund processed: ${refundedAmount} AUD, type: ${refundType}`);
+  } catch (err) {
+    console.error("❌ Error handling booking refund event:", err);
+  }
+};
+
   
 
 

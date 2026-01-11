@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import { handleVerificationSessionEvent } from './KYC Verification/kyc.webhook.js';
-import { handleBookingPaymentEvents } from './Payment/Booking/webhook.controller.js';
+import { handleBookingPaymentEvents, handleBookingRefundEvents } from './Payment/Booking/webhook.controller.js';
 import { handleSubscriptionPaymentEvents } from './Payment/Subscription/subsPayment.webhook.js';
 import Payment from './Payment/Booking/payment.model.js';
 import { handleSetupIntentCompleted } from './Payment/SaveCardInfoHandler.js';
@@ -90,7 +90,7 @@ export const stripeWebhookHandler = async (req, res) => {
  'charge.refunded': async (event) => {
   try {
     // Directly handle booking refund
-    await handleBookingPaymentEvents(event); // or better: rename handler to handleBookingRefunds
+    await handleBookingRefundEvents(event); // or better: rename handler to handleBookingRefunds
     console.log('✅ charge.refunded event processed for booking');
   } catch (err) {
     console.error('❌ Error processing charge.refunded:', err);
