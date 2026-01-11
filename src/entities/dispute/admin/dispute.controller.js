@@ -109,10 +109,10 @@ export const initiateRefundController = async (req, res) => {
     // 4️⃣ Mark booking as "Refund Pending"
     booking.paymentStatus = 'RefundPending';
     booking.refundDetails.push({
-      refundId: refund.id,
+      stripeRefundId: refund.id,
       amount: amount ? amount : booking.totalAmount,
       status: 'Pending',
-      initiatedAt: new Date(),
+      processedAt: new Date(),
     });
     await booking.save();
 

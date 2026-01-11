@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import sendEmail from "../../../lib/sendEmail.js";
 import User from "../../auth/auth.model.js";
 import { Booking } from "../../booking/booking.model.js";
@@ -204,12 +205,13 @@ export const handleBookingPaymentEvents = async (event) => {
 
 // Payment/Booking/refund.handler.js
 
-export const handleBookingRefundEvents = async (event) => {
+export const handleBookingRefundEvents = async (event, processedByUserId = null) => {
   try {
-     if (!event?.data?.object) {
+    if (!event?.data?.object) {
       console.warn('⚠️ Stripe refund event missing data.object', event);
       return;
     }
+
     const charge = event.data.object;
 
     const booking = await Booking.findOne({ stripePaymentIntentId: charge.payment_intent });
@@ -223,9 +225,12 @@ export const handleBookingRefundEvents = async (event) => {
       refundType,
       amount: refundedAmount,
       reason: charge.reason || "Not specified",
-      stripeRefundId: charge.refunds.data[0]?.id || "unknown",
+      stripeRefundId: charge.refunds?.data[0]?.id || "unknown",
       processedAt: new Date(),
+      processedBy: processedByUserId ? mongoose.Types.ObjectId(processedByUserId) : null,
+      status: refundType === "Full" ? "Completed" : "Partial",
     };
+
     booking.refundDetails.push(refundRecord);
 
     booking.paymentStatus = refundType === "Full" ? "Refunded" : "PartialRefunded";
@@ -242,6 +247,7 @@ export const handleBookingRefundEvents = async (event) => {
     console.error("❌ Error handling booking refund event:", err);
   }
 };
+
 
   
 

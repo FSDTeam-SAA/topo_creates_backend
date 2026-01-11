@@ -109,6 +109,7 @@ paymentErrorMessage: { type: String },
         stripeRefundId: String,
         processedAt: { type: Date, default: Date.now },
         processedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+        status:String
       },
     ],
 
