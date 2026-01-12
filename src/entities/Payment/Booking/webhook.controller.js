@@ -1,10 +1,9 @@
-import mongoose from "mongoose";
-import sendEmail from "../../../lib/sendEmail.js";
-import User from "../../auth/auth.model.js";
-import { Booking } from "../../booking/booking.model.js";
-import { ChatRoom } from "../../message/chatRoom.model.js";
-import Payment from "./payment.model.js";
-
+import mongoose from 'mongoose';
+import { sendEmail } from '../../../lib/resendEmial.js';
+import User from '../../auth/auth.model.js';
+import { Booking } from '../../booking/booking.model.js';
+import { ChatRoom } from '../../message/chatRoom.model.js';
+import Payment from './payment.model.js';
 
 /**
  * Handle Stripe webhook events for booking payments
@@ -14,31 +13,30 @@ export const handleBookingPaymentEvents = async (event) => {
   try {
     switch (event.type) {
       // Payment completed successfully via checkout
-      case "checkout.session.completed": {
+      case 'checkout.session.completed': {
         const session = event.data.object;
         const { paymentId, bookingId } = session.metadata;
 
         const payment = await Payment.findById(paymentId);
         if (!payment) return console.warn(`Payment not found: ${paymentId}`);
-        if (payment.status === "Paid") return; // already handled
+        if (payment.status === 'Paid') return; // already handled
 
         // Update Payment
-        payment.status = "Paid";
+        payment.status = 'Paid';
         payment.stripe.paymentIntentId = session.payment_intent;
         await payment.save();
 
         // Update Booking
         // Update Booking (atomic update instead of save())
-          const booking = await Booking.findByIdAndUpdate(
-            bookingId,
-            { paymentStatus: "Paid" },
-            { new: true }
-          ).populate("customer");
+        const booking = await Booking.findByIdAndUpdate(
+          bookingId,
+          { paymentStatus: 'Paid' },
+          { new: true }
+        ).populate('customer');
 
         console.log(
           `Checkout session completed: Payment ${paymentId}, Booking ${bookingId}`
         );
-
 
         // Create ChatRoom if not exists, include both customer and lender
         let chatRoom = await ChatRoom.findOne({ bookingId });
@@ -46,7 +44,7 @@ export const handleBookingPaymentEvents = async (event) => {
           chatRoom = await ChatRoom.create({
             bookingId,
             participants: [booking.customer._id, booking.lender._id],
-            createdBy: booking.customer._id,
+            createdBy: booking.customer._id
           });
           console.log(
             `ChatRoom created for booking ${bookingId} with participants [${booking.customer._id}, ${booking.lender._id}]`
@@ -57,8 +55,10 @@ export const handleBookingPaymentEvents = async (event) => {
             chatRoom._id,
             {
               $addToSet: {
-                participants: { $each: [booking.customer._id, booking.lender._id] },
-              },
+                participants: {
+                  $each: [booking.customer._id, booking.lender._id]
+                }
+              }
             },
             { new: true }
           );
@@ -68,19 +68,19 @@ export const handleBookingPaymentEvents = async (event) => {
           );
         }
 
-
         // Send email alerts to admins who opted in
         const adminsToNotify = await User.find({
-          role: "ADMIN",
-          "notificationPreferences.receiveEmailAlertsForNewOrders": { $exists: true, $eq: true }
-        }).select("email lastName notificationPreferences");
+          role: 'ADMIN',
+          'notificationPreferences.receiveEmailAlertsForNewOrders': {
+            $exists: true,
+            $eq: true
+          }
+        }).select('email lastName notificationPreferences');
 
+        if (adminsToNotify.length > 0) {
+          const subject = '📦 New Order Received';
 
-
-      if (adminsToNotify.length > 0) {
-        const subject = "📦 New Order Received";
-
-        const html = `
+          const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
           <!-- Header -->
           <div style="background-color: #4CAF50; color: white; padding: 16px; text-align: center;">
@@ -99,11 +99,11 @@ export const handleBookingPaymentEvents = async (event) => {
               </tr>
               <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9;"><strong>Customer Name</strong></td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${booking?.customer?.lastName || "Unknown"}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${booking?.customer?.lastName || 'Unknown'}</td>
               </tr>
               <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9;"><strong>Customer Email</strong></td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${booking?.customer?.email || "Unknown"}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${booking?.customer?.email || 'Unknown'}</td>
               </tr>
               <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9;"><strong>Payment ID</strong></td>
@@ -118,7 +118,6 @@ export const handleBookingPaymentEvents = async (event) => {
           </div>
         </div>
         `;
-
 
           // Send email to each admin
           await Promise.all(
@@ -136,15 +135,15 @@ export const handleBookingPaymentEvents = async (event) => {
       }
 
       // Extra safety: payment intent succeeded
-      case "payment_intent.succeeded": {
+      case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
         const payment = await Payment.findOne({
-          "stripe.paymentIntentId": paymentIntent.id,
+          'stripe.paymentIntentId': paymentIntent.id
         });
         if (!payment) return;
 
-        if (payment.status !== "Paid") {
-          payment.status = "Paid";
+        if (payment.status !== 'Paid') {
+          payment.status = 'Paid';
           await payment.save();
           console.log(`✅ PaymentIntent succeeded: Payment ${payment._id}`);
         }
@@ -152,18 +151,18 @@ export const handleBookingPaymentEvents = async (event) => {
       }
 
       // Payment failed
-      case "payment_intent.payment_failed": {
+      case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object;
         const payment = await Payment.findOne({
-          "stripe.paymentIntentId": paymentIntent.id,
+          'stripe.paymentIntentId': paymentIntent.id
         });
         if (!payment) return;
 
-        payment.status = "Failed";
+        payment.status = 'Failed';
         await payment.save();
 
         const booking = await Booking.findById(payment.bookingId);
-        if (booking) booking.paymentStatus = "Failed";
+        if (booking) booking.paymentStatus = 'Failed';
         await booking.save();
 
         console.warn(`❌ Payment failed: Payment ${payment._id}`);
@@ -171,19 +170,19 @@ export const handleBookingPaymentEvents = async (event) => {
       }
 
       // Checkout session expired
-      case "checkout.session.expired": {
+      case 'checkout.session.expired': {
         const session = event.data.object;
         const { paymentId, bookingId } = session.metadata;
 
         const payment = await Payment.findById(paymentId);
         if (!payment) return;
-        if (payment.status !== "Pending") return; 
+        if (payment.status !== 'Pending') return;
 
-        payment.status = "Expired";
+        payment.status = 'Expired';
         await payment.save();
 
         const booking = await Booking.findById(bookingId);
-        if (booking) booking.paymentStatus = "Expired";
+        if (booking) booking.paymentStatus = 'Expired';
         await booking.save();
 
         console.log(
@@ -192,20 +191,21 @@ export const handleBookingPaymentEvents = async (event) => {
         break;
       }
 
-      
-
-
       default:
         console.log(`ℹ️ Unhandled event type: ${event.type}`);
     }
   } catch (err) {
     console.error(`❌ Error handling Stripe event ${event.type}:`, err);
   }
-}
+};
 
 // Payment/Booking/refund.handler.js
 
-export const handleBookingRefundEvents = async (event, processedByUserId = null, refundAmountInput = null) => {
+export const handleBookingRefundEvents = async (
+  event,
+  processedByUserId = null,
+  refundAmountInput = null
+) => {
   try {
     // 1️⃣ Safe extraction of the charge object
     const charge = event?.data?.object;
@@ -215,57 +215,67 @@ export const handleBookingRefundEvents = async (event, processedByUserId = null,
     }
 
     // 2️⃣ Find booking using the Payment Intent ID
-    const booking = await Booking.findOne({ stripePaymentIntentId: charge.payment_intent });
+    const booking = await Booking.findOne({
+      stripePaymentIntentId: charge.payment_intent
+    });
     if (!booking) {
-      console.warn(`Booking not found for PaymentIntent ${charge.payment_intent}`);
-      return; 
+      console.warn(
+        `Booking not found for PaymentIntent ${charge.payment_intent}`
+      );
+      return;
     }
 
     // 3️⃣ Determine refund amount
-    const refundedAmount = refundAmountInput != null 
-      ? refundAmountInput 
-      : charge.amount_refunded / 100 || booking.totalAmount;
+    const refundedAmount =
+      refundAmountInput != null
+        ? refundAmountInput
+        : charge.amount_refunded / 100 || booking.totalAmount;
 
     const totalAmount = booking.totalAmount || 0;
-    const refundType = refundedAmount >= totalAmount ? "Full" : "Partial";
+    const refundType = refundedAmount >= totalAmount ? 'Full' : 'Partial';
 
     // 4️⃣ Prepare refund record
-    const stripeRefundId = charge.refunds?.data?.[0]?.id || charge.id || "unknown";
+    const stripeRefundId =
+      charge.refunds?.data?.[0]?.id || charge.id || 'unknown';
 
     const refundRecord = {
       refundType,
       amount: refundedAmount,
-      reason: charge.reason || "Not specified",
+      reason: charge.reason || 'Not specified',
       stripeRefundId,
       processedAt: new Date(),
-      processedBy: processedByUserId ? new mongoose.Types.ObjectId(processedByUserId) : null,
-      status: "Completed",
+      processedBy: processedByUserId
+        ? new mongoose.Types.ObjectId(processedByUserId)
+        : null,
+      status: 'Completed'
     };
 
     booking.refundDetails.push(refundRecord);
 
     // 5️⃣ Update booking paymentStatus
-    booking.paymentStatus = refundType === "Full" ? "Refunded" : "PartiallyRefunded";
+    booking.paymentStatus =
+      refundType === 'Full' ? 'Refunded' : 'PartiallyRefunded';
 
     // 6️⃣ Update lenderPrice based on original booking.lenderPrice
-    if (refundType === "Partial") {
-      booking.lenderPrice = Math.max((booking.lenderPrice || booking.allocatedLender?.price || 0) - refundedAmount, 0);
+    if (refundType === 'Partial') {
+      booking.lenderPrice = Math.max(
+        (booking.lenderPrice || booking.allocatedLender?.price || 0) -
+          refundedAmount,
+        0
+      );
     } else {
       booking.lenderPrice = 0; // Full refund
     }
 
     await booking.save();
 
-    console.log(`✅ Booking ${booking._id} refund processed: ${refundedAmount} AUD, paymentStatus: ${booking.paymentStatus}, lenderPrice: ${booking.lenderPrice}`);
-
+    console.log(
+      `✅ Booking ${booking._id} refund processed: ${refundedAmount} AUD, paymentStatus: ${booking.paymentStatus}, lenderPrice: ${booking.lenderPrice}`
+    );
   } catch (err) {
-    console.error("❌ Error handling booking refund event:", err.message);
+    console.error('❌ Error handling booking refund event:', err.message);
   }
 };
-
-  
-
-
 
 // export const handleBookingPaymentEvents = async (event) => {
 //   try {

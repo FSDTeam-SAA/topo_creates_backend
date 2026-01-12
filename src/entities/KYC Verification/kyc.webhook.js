@@ -1,5 +1,11 @@
-
 import User from '../auth/auth.model.js';
+import { sendEmail } from '../../lib/resendEmial.js';
+import {
+  kycVerifiedTemplate,
+  kycRequiresInputTemplate,
+  kycProcessingTemplate,
+  kycFailedTemplate
+} from '../../lib/emailTemplates/kyc.templates.js';
 
 export const handleVerificationSessionEvent = async (event) => {
   const session = event.data.object;
@@ -28,6 +34,17 @@ export const handleVerificationSessionEvent = async (event) => {
       user.stripeVerificationSessionId = null;
       user.stripeVerificationSessionUrl = null;
       user.stripeVerificationSessionExpiresAt = null;
+
+      // Send verification success email
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'KYC Verification Successful',
+          html: kycVerifiedTemplate(user.firstName || user.lastName || user.username || 'User')
+        });
+      } catch (emailError) {
+        console.error('Error sending KYC verified email:', emailError);
+      }
       break;
 
     case 'identity.verification_session.requires_input':
@@ -36,6 +53,20 @@ export const handleVerificationSessionEvent = async (event) => {
       user.kycLastUpdated = now;
       user.kycDetails = session;
       // Keep session info so user can resume
+
+      // Send requires input email
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'Additional Information Needed for KYC',
+          html: kycRequiresInputTemplate(
+            user.firstName || user.lastName || user.username || 'User',
+            'Please provide additional documents'
+          )
+        });
+      } catch (emailError) {
+        console.error('Error sending KYC requires input email:', emailError);
+      }
       break;
 
     case 'identity.verification_session.processing':
@@ -44,6 +75,17 @@ export const handleVerificationSessionEvent = async (event) => {
       user.kycLastUpdated = now;
       user.kycDetails = session;
       // Keep session info so user can resume
+
+      // Send processing email
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'KYC Verification in Progress',
+          html: kycProcessingTemplate(user.firstName ||  user.lastName || user.username || 'User')
+        });
+      } catch (emailError) {
+        console.error('Error sending KYC processing email:', emailError);
+      }
       break;
 
     case 'identity.verification_session.canceled':
@@ -57,6 +99,21 @@ export const handleVerificationSessionEvent = async (event) => {
       user.stripeVerificationSessionId = null;
       user.stripeVerificationSessionUrl = null;
       user.stripeVerificationSessionExpiresAt = null;
+
+      // Send failed/expired email
+      try {
+        const reason =
+          event.type === 'identity.verification_session.expired'
+            ? 'Your verification session has expired'
+            : 'Your verification session was canceled';
+        await sendEmail({
+          to: user.email,
+          subject: 'KYC Verification Session Ended',
+          html: kycFailedTemplate(user.firstName ||  user.lastName || user.username || 'User', reason)
+        });
+      } catch (emailError) {
+        console.error('Error sending KYC failed email:', emailError);
+      }
       break;
 
     default:

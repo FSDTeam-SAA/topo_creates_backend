@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 import { Booking } from "../../booking/booking.model.js";
 import { Dispute } from "../dispute.model.js";
+import User from "../../auth/auth.model.js";
+import { sendEmail } from "../../../lib/resendEmial.js";
+import {
+  disputeCreatedTemplate,
+  disputeEscalatedTemplate,
+  disputeResponseTemplate,
+} from "../../../lib/emailTemplates/dispute.templates.js";
 
 
 export const createDisputeByLenderService = async (lenderId, bookingId, disputeData) => {
@@ -32,6 +39,39 @@ export const createDisputeByLenderService = async (lenderId, bookingId, disputeD
 
   booking.dispute = savedDispute._id;
   await booking.save();
+
+  // Send email to lender and customer
+  try {
+    const lender = await User.findById(lenderId);
+    const customer = await User.findById(booking.customer);
+    
+    if (lender?.email) {
+      await sendEmail({
+        to: lender.email,
+        subject: 'Dispute Created - Action Required',
+        html: disputeCreatedTemplate(
+          lender.firstName || lender.name || 'User',
+          disputeData.issueType,
+          bookingId.toString()
+        ),
+      });
+    }
+    
+    // Also notify customer
+    if (customer?.email) {
+      await sendEmail({
+        to: customer.email,
+        subject: 'Dispute Filed on Your Booking',
+        html: disputeCreatedTemplate(
+          customer.firstName || customer.name || 'User',
+          disputeData.issueType,
+          bookingId.toString()
+        ),
+      });
+    }
+  } catch (emailError) {
+    console.error('Error sending dispute created emails:', emailError);
+  }
 
   return savedDispute;
 };
@@ -244,13 +284,35 @@ export const escalateDisputeByLenderService = async (
 
   await dispute.save();
 
+  // Send escalation email
+  try {
+    const lender = await User.findById(lenderId);
+    const customer = await User.findById(dispute.booking.customer);
+    const lenderName = lender ? (lender.firstName || lender.name || 'User') : 'User';
+
+    // Notify customer
+    if (customer?.email) {
+      await sendEmail({
+        to: customer.email,
+        subject: 'Your Dispute Has Been Escalated',
+        html: disputeEscalatedTemplate(
+          customer.firstName || customer.name || 'User',
+          reason,
+          dispute.booking._id.toString()
+        ),
+      });
+    }
+  } catch (emailError) {
+    console.error('Error sending escalation email:', emailError);
+  }
+
   return dispute;
 };
 
 
 
 export const replyToSupportByLenderService = async (lenderId, disputeId, message, attachments) => {
-  const dispute = await Dispute.findOne({ _id: disputeId, createdBy: lenderId });
+  const dispute = await Dispute.findOne({ _id: disputeId, createdBy: lenderId }).populate('booking', 'customer');
 
   if (!dispute) {
     const err = new Error("Dispute not found or not owned by lender");
@@ -266,5 +328,28 @@ export const replyToSupportByLenderService = async (lenderId, disputeId, message
   });
 
   await dispute.save();
+
+  // Send email notification
+  try {
+    const lender = await User.findById(lenderId);
+    const customer = await User.findById(dispute.booking.customer);
+    const lenderName = lender ? (lender.firstName || lender.lastName || 'Lender') : 'Lender';
+
+    if (customer?.email) {
+      await sendEmail({
+        to: customer.email,
+        subject: 'New Reply on Your Dispute',
+        html: disputeResponseTemplate(
+          customer.firstName || customer.username || 'User',
+          lenderName,
+          message,
+          dispute.booking._id.toString()
+        ),
+      });
+    }
+  } catch (emailError) {
+    console.error('Error sending dispute response email:', emailError);
+  }
+
   return dispute;
 };

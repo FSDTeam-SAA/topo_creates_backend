@@ -1,11 +1,16 @@
 import User from './auth.model.js';
 import jwt from 'jsonwebtoken';
-import { accessTokenExpires, accessTokenSecrete,   refreshTokenExpires, refreshTokenSecrete, emailExpires } from '../../core/config/config.js';
-import sendEmail from '../../lib/sendEmail.js';
+import {
+  accessTokenExpires,
+  accessTokenSecrete,
+  refreshTokenExpires,
+  refreshTokenSecrete,
+  emailExpires
+} from '../../core/config/config.js';
+import { sendEmail } from '../../lib/resendEmial.js';
 import verificationCodeTemplate from '../../lib/emailTemplates.js';
 import Team from '../admin/team/team.model.js';
-import bcrypt from "bcrypt";
-
+import bcrypt from 'bcrypt';
 
 export const registerUserService = async ({
   firstName,
@@ -20,62 +25,61 @@ export const registerUserService = async ({
     firstName,
     lastName,
     email,
-    password,
+    password
   });
 
   const user = await newUser.save();
 
   const { _id, role, profileImage } = user;
-  return { _id, firstName, lastName, email, role,  profileImage };
+  return { _id, firstName, lastName, email, role, profileImage };
 };
 
-
 export const loginUserService = async ({ email, password }) => {
-  if (!email || !password) throw new Error("Email and password are required");
+  if (!email || !password) throw new Error('Email and password are required');
 
   let account = null;
   let accountType = null;
 
   // --- CHECK USER MODEL (USER + SUPER_ADMIN) ---
-  account = await User.findOne({ email }).select("+password");
+  account = await User.findOne({ email }).select('+password');
 
   if (account) {
-    if (account.role === "SUPER_ADMIN") accountType = "SUPER_ADMIN";
-    else if (account.role === "USER") accountType = "USER";
-    else if (account.role === "LENDER") accountType = "LENDER";
-    else accountType = "ADMIN";
+    if (account.role === 'SUPER_ADMIN') accountType = 'SUPER_ADMIN';
+    else if (account.role === 'USER') accountType = 'USER';
+    else if (account.role === 'LENDER') accountType = 'LENDER';
+    else accountType = 'ADMIN';
   }
 
   // --- CHECK TEAM MODEL (ADMIN) ---
   if (!account) {
-    account = await Team.findOne({ email }).select("+password");
-    if (account) accountType = "ADMIN";
+    account = await Team.findOne({ email }).select('+password');
+    if (account) accountType = 'ADMIN';
   }
 
-  if (!account) throw new Error("User not found");
+  if (!account) throw new Error('User not found');
 
   // PASSWORD VALIDATION
   const isMatch = await bcrypt.compare(password, account.password);
-  if (!isMatch) throw new Error("Invalid password");
+  if (!isMatch) throw new Error('Invalid password');
 
   // JWT PAYLOAD
   const payload = {
     _id: account._id,
     role: accountType,
-    permissions: accountType === "ADMIN" ? account.permissions : [],
+    permissions: accountType === 'ADMIN' ? account.permissions : []
   };
 
   // TOKENS
   const accessToken = jwt.sign(payload, accessTokenSecrete, {
-    expiresIn: accessTokenExpires,
+    expiresIn: accessTokenExpires
   });
 
   const refreshToken = jwt.sign(payload, refreshTokenSecrete, {
-    expiresIn: refreshTokenExpires,
+    expiresIn: refreshTokenExpires
   });
 
   // SAVE REFRESH TOKEN FOR USER + SUPER_ADMIN
-  if (accountType === "USER" || accountType === "SUPER_ADMIN") {
+  if (accountType === 'USER' || accountType === 'SUPER_ADMIN') {
     account.refreshToken = refreshToken;
     await account.save();
   }
@@ -84,18 +88,22 @@ export const loginUserService = async ({ email, password }) => {
   let responseUser = {
     _id: account._id,
     email: account.email,
-    role: accountType,
+    role: accountType
   };
 
   // USER + SUPER_ADMIN RESPONSE FORMAT
-  if (accountType === "USER" || accountType === "SUPER_ADMIN" || accountType === "LENDER") {
+  if (
+    accountType === 'USER' ||
+    accountType === 'SUPER_ADMIN' ||
+    accountType === 'LENDER'
+  ) {
     responseUser.firstName = account.firstName;
     responseUser.lastName = account.lastName;
-    responseUser.profileImage = account.profileImage || "";
+    responseUser.profileImage = account.profileImage || '';
   }
 
   // ADMIN RESPONSE FORMAT
-  if (accountType === "ADMIN") {
+  if (accountType === 'ADMIN') {
     responseUser.name = account.name;
     responseUser.permissions = account.permissions || [];
   }
@@ -103,10 +111,9 @@ export const loginUserService = async ({ email, password }) => {
   return {
     user: responseUser,
     accessToken,
-    refreshToken,
+    refreshToken
   };
 };
-
 
 // export const loginUserService = async ({ email, password }) => {
 //   if (!email || !password) throw new Error('Email and password are required');
@@ -131,7 +138,6 @@ export const loginUserService = async ({ email, password }) => {
 //   return data
 // };
 
-
 export const refreshAccessTokenService = async (refreshToken) => {
   if (!refreshToken) throw new Error('No refresh token provided');
 
@@ -139,28 +145,27 @@ export const refreshAccessTokenService = async (refreshToken) => {
 
   if (!user) throw new Error('Invalid refresh token');
 
-  const decoded = jwt.verify(refreshToken, refreshTokenSecrete)
+  const decoded = jwt.verify(refreshToken, refreshTokenSecrete);
 
-  if (!decoded || decoded._id !== user._id.toString()) throw new Error('Invalid refresh token')
+  if (!decoded || decoded._id !== user._id.toString())
+    throw new Error('Invalid refresh token');
 
-  const payload = { _id: user._id }
+  const payload = { _id: user._id };
 
   const accessToken = user.generateAccessToken(payload);
   const newRefreshToken = user.generateRefreshToken(payload);
 
   user.refreshToken = newRefreshToken;
-  await user.save({ validateBeforeSave: false })
+  await user.save({ validateBeforeSave: false });
 
   return {
     accessToken,
     refreshToken: newRefreshToken
-  }
+  };
 };
 
-
 export const forgetPasswordService = async (email) => {
-
-  if (!email) throw new Error('Email is required')
+  if (!email) throw new Error('Email is required');
 
   const user = await User.findOne({ email });
   if (!user) throw new Error('Invalid email');
@@ -181,10 +186,8 @@ export const forgetPasswordService = async (email) => {
   return;
 };
 
-
 export const verifyCodeService = async ({ email, otp }) => {
-
-  if (!email || !otp) throw new Error('Email and otp are required')
+  if (!email || !otp) throw new Error('Email and otp are required');
 
   const user = await User.findOne({ email });
 
@@ -192,7 +195,8 @@ export const verifyCodeService = async ({ email, otp }) => {
 
   if (!user.otp || !user.otpExpires) throw new Error('Otp not found');
 
-  if (user.otp !== otp || new Date() > user.otpExpires) throw new Error('Invalid or expired otp')
+  if (user.otp !== otp || new Date() > user.otpExpires)
+    throw new Error('Invalid or expired otp');
 
   user.otp = null;
   user.otpExpires = null;
@@ -201,9 +205,9 @@ export const verifyCodeService = async ({ email, otp }) => {
   return;
 };
 
-
 export const resetPasswordService = async ({ email, newPassword }) => {
-  if (!email || !newPassword) throw new Error('Email and new password are required');
+  if (!email || !newPassword)
+    throw new Error('Email and new password are required');
 
   const user = await User.findOne({ email });
   if (!user) throw new Error('Invalid email');
@@ -216,9 +220,13 @@ export const resetPasswordService = async ({ email, newPassword }) => {
   return;
 };
 
-
-export const changePasswordService = async ({ userId, oldPassword, newPassword }) => {
-  if (!userId || !oldPassword || !newPassword) throw new Error('User id, old password and new password are required');
+export const changePasswordService = async ({
+  userId,
+  oldPassword,
+  newPassword
+}) => {
+  if (!userId || !oldPassword || !newPassword)
+    throw new Error('User id, old password and new password are required');
 
   const user = await User.findById(userId);
   if (!user) throw new Error('User not found');
@@ -231,8 +239,3 @@ export const changePasswordService = async ({ userId, oldPassword, newPassword }
 
   return;
 };
-
-
-
-
-

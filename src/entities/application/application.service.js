@@ -3,7 +3,7 @@
 import { adminEmail } from '../../core/config/config.js';
 import { generateRandomPassword } from '../../lib/generatePassword.js';
 import lenderCredentialsTemplate from '../../lib/lenderCredentialsTemplate.js';
-import sendEmail from '../../lib/sendEmail.js';
+import { sendEmail } from '../../lib/resendEmial.js';
 import RoleType from '../../lib/types.js';
 import User from '../auth/auth.model.js';
 
@@ -33,7 +33,7 @@ export const createApplication = async (data) => {
         password: tempPassword,
         status: 'pending',
         applicationSubmittedAt: new Date(),
-        role: 'APPLICANT',  // or keep USER, just mark status
+        role: 'APPLICANT' // or keep USER, just mark status
       },
       { new: true }
     );
@@ -45,7 +45,7 @@ export const createApplication = async (data) => {
       password: tempPassword,
       status: 'pending',
       applicationSubmittedAt: new Date(),
-      role: 'APPLICANT', // temp role
+      role: 'APPLICANT' // temp role
     });
     await user.save();
   }
@@ -62,8 +62,6 @@ export const createApplication = async (data) => {
     <p>Please review and approve/reject the application in the admin panel.</p>
   `;
 
- 
-
   // Email applicant confirmation (no password)
   const applicantEmailContent = `
     <p>Dear ${user.fullName || user.firstName || 'Applicant'},</p>
@@ -71,20 +69,19 @@ export const createApplication = async (data) => {
     <p>We will contact you once your application is reviewed.</p>
   `;
 
-// Send both emails in parallel to reduce wait time
-await Promise.all([
-  sendEmail({
-    to: adminEmail,
-    subject: 'New Lender Application Received',
-    html: adminEmailContent,
-  }),
-  sendEmail({
-    to: user.email,
-    subject: 'Your Lender Application Has Been Received',
-    html: applicantEmailContent,
-  }),
-]);
-
+  // Send both emails in parallel to reduce wait time
+  await Promise.all([
+    sendEmail({
+      to: adminEmail,
+      subject: 'New Lender Application Received',
+      html: adminEmailContent
+    }),
+    sendEmail({
+      to: user.email,
+      subject: 'Your Lender Application Has Been Received',
+      html: applicantEmailContent
+    })
+  ]);
 
   // Return the user data (without password)
   user.password = undefined;
@@ -101,14 +98,14 @@ export const getAllApplicationsService = async ({
   startDate,
   endDate,
   page = 1,
-  limit = 10,
+  limit = 10
 }) => {
   const skip = (parseInt(page) - 1) * parseInt(limit);
   const regex = search ? new RegExp(search, 'i') : null;
 
   const query = {
     status: { $ne: null },
-      role: { $in: ['LENDER', 'APPLICANT'] },
+    role: { $in: ['LENDER', 'APPLICANT'] }
   };
 
   if (status && status !== 'all') query.status = status;
@@ -116,7 +113,7 @@ export const getAllApplicationsService = async ({
     query.$or = [
       { fullName: { $regex: regex } },
       { firstName: { $regex: regex } },
-      { lastName: { $regex: regex } },
+      { lastName: { $regex: regex } }
     ];
   }
   if (totalbookings) query.totalbookings = parseInt(totalbookings);
@@ -131,7 +128,7 @@ export const getAllApplicationsService = async ({
 
   const [data, total] = await Promise.all([
     User.find(query).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
-    User.countDocuments(query),
+    User.countDocuments(query)
   ]);
 
   return {
@@ -139,8 +136,8 @@ export const getAllApplicationsService = async ({
     pagination: {
       total,
       page: parseInt(page),
-      totalPages: Math.ceil(total / limit),
-    },
+      totalPages: Math.ceil(total / limit)
+    }
   };
 };
 
@@ -151,22 +148,20 @@ export const getApplicationById = async (id) => {
 };
 
 export const updateApplication = async (id, data) => {
-
-
-
-  const user = await User.findById(id).select('-password -accessToken -refreshToken');
-
-
+  const user = await User.findById(id).select(
+    '-password -accessToken -refreshToken'
+  );
 
   if (!user || !user.status) throw new Error('Application not found');
 
-  const isAlreadyApproved = user.status === 'approved' && data.status === 'approved';
-  const isNowRejected = data.status === 'rejected'
-  if (isAlreadyApproved) throw new Error('This lender application has already been approved.');
+  const isAlreadyApproved =
+    user.status === 'approved' && data.status === 'approved';
+  const isNowRejected = data.status === 'rejected';
+  if (isAlreadyApproved)
+    throw new Error('This lender application has already been approved.');
 
- const isNowApproved =
-  ['pending', 'rejected'].includes(user.status) && data.status === 'approved';
-
+  const isNowApproved =
+    ['pending', 'rejected'].includes(user.status) && data.status === 'approved';
 
   if (isNowApproved) {
     user.role = 'LENDER';
@@ -190,17 +185,17 @@ export const updateApplication = async (id, data) => {
     `;
 
     await Promise.all([
-  sendEmail({
-    to: user.email,
-    subject: 'Your Lender Application Approved',
-    html: userEmailContent,
-  }),
-  sendEmail({
-    to: adminEmail,
-    subject: 'A Lender Application Has Been Approved',
-    html: adminEmailContent,
-  })
-]);
+      sendEmail({
+        to: user.email,
+        subject: 'Your Lender Application Approved',
+        html: userEmailContent
+      }),
+      sendEmail({
+        to: adminEmail,
+        subject: 'A Lender Application Has Been Approved',
+        html: adminEmailContent
+      })
+    ]);
   } else if (isNowRejected) {
     user.status = 'rejected';
     user.role = 'APPLICANT';
@@ -225,7 +220,7 @@ export const updateApplication = async (id, data) => {
     await sendEmail({
       to: user.email,
       subject: 'Your Lender Application Rejected',
-      html: userEmailContent,
+      html: userEmailContent
     });
   } else {
     await User.findByIdAndUpdate(id, data, { new: true });

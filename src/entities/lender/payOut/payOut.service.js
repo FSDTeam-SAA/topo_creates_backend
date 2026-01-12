@@ -1,5 +1,7 @@
 // payout.service.js
 
+import { sendEmail } from "../../../lib/resendEmial.js";
+import { payoutRequestCreatedTemplate, payoutRequestReceivedTemplate } from "../../../lib/emailTemplates/payout.templates.js";
 import User from "../../auth/auth.model.js";
 import { Booking } from "../../booking/booking.model.js";
 import paymentModel from "../../Payment/Booking/payment.model.js";
@@ -52,6 +54,41 @@ export const createPayoutRequestService = async ({ lenderId, bookingId }) => {
     commission,
     status: "pending",
   });
+
+  // 6️⃣ Send confirmation email to lender
+  try {
+    await sendEmail({
+      to: lender.email,
+      subject: 'Payout Request Submitted Successfully',
+      html: payoutRequestCreatedTemplate(
+        lender.firstName || 'Lender',
+        requestedAmount,
+        booking._id,
+        commission
+      )
+    });
+  } catch (error) {
+    console.error('Failed to send payout confirmation email to lender:', error);
+  }
+
+  // 7️⃣ Send notification email to admin
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@topocreates.com';
+    await sendEmail({
+      to: adminEmail,
+      subject: 'New Payout Request Received',
+      html: payoutRequestReceivedTemplate(
+        `${lender.firstName || ''} ${lender.lastName || ''}`.trim() || 'Unknown Lender',
+        lenderId,
+        requestedAmount,
+        booking._id,
+        booking.lenderPrice,
+        adminsProfit
+      )
+    });
+  } catch (error) {
+    console.error('Failed to send payout notification email to admin:', error);
+  }
 
   return payout;
 };

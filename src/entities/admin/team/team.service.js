@@ -1,15 +1,18 @@
-import { generateRandomPassword } from "../../../lib/generatePassword.js";
-import { createPaginationInfo } from "../../../lib/pagination.js";
-import sendEmail from "../../../lib/sendEmail.js";
-import Team from "./team.model.js";
+import { generateRandomPassword } from '../../../lib/generatePassword.js';
+import { createPaginationInfo } from '../../../lib/pagination.js';
+import { sendEmail } from '../../../lib/resendEmial.js';
+import Team from './team.model.js';
 
-
-export const createAdminService = async ({ name, email, permissions, createdBy }) => {
-
+export const createAdminService = async ({
+  name,
+  email,
+  permissions,
+  createdBy
+}) => {
   // CHECK DUPLICATE EMAIL IN TEAM TABLE
   const exists = await Team.findOne({ email });
   if (exists) {
-    throw new Error("Admin already exists");
+    throw new Error('Admin already exists');
   }
 
   // GENERATE TEMP PASSWORD
@@ -21,8 +24,8 @@ export const createAdminService = async ({ name, email, permissions, createdBy }
     email,
     permissions,
     createdBy,
-    role: "ADMIN",
-    password,
+    role: 'ADMIN',
+    password
   });
 
   await admin.save();
@@ -30,7 +33,7 @@ export const createAdminService = async ({ name, email, permissions, createdBy }
   // SEND EMAIL
   await sendEmail({
     to: email,
-    subject: "Your Admin Account Credentials",
+    subject: 'Your Admin Account Credentials',
     html: `
       <h2>Welcome, ${name}</h2>
       <p>You have been added as an admin to Muse Gala.</p>
@@ -42,7 +45,7 @@ export const createAdminService = async ({ name, email, permissions, createdBy }
 
       <br/>
       <p>Regards,<br/>Muse Gala Team</p>
-    `,
+    `
   });
 
   // RETURN CLEAN RESPONSE
@@ -53,10 +56,9 @@ export const createAdminService = async ({ name, email, permissions, createdBy }
     role: admin.role,
     permissions: admin.permissions,
     createdBy: admin.createdBy,
-    status: admin.status,
+    status: admin.status
   };
 };
-
 
 export const getAllAdminsService = async ({ page, limit, search, status }) => {
   const filter = {};
@@ -64,45 +66,43 @@ export const getAllAdminsService = async ({ page, limit, search, status }) => {
   // ----- SEARCH (name OR email) -----
   if (search) {
     filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } }
     ];
   }
 
   // ----- FILTER BY STATUS -----
   if (status) {
-    filter.status = status; 
+    filter.status = status;
   }
 
   // ----- COUNT BEFORE PAGINATION -----
   const totalData = await Team.countDocuments(filter);
 
   const admins = await Team.find(filter)
-    .select("-password")             
-    .populate("createdBy", "name email")
+    .select('-password')
+    .populate('createdBy', 'name email')
     .skip((page - 1) * limit)
     .limit(limit)
-    .sort({ createdAt: -1 }); 
+    .sort({ createdAt: -1 });
 
   return {
     admins,
-    pagination: createPaginationInfo(page, limit, totalData),
+    pagination: createPaginationInfo(page, limit, totalData)
   };
 };
 
-
 export const getAdminByIdService = async (id) => {
   const admin = await Team.findById(id)
-    .select("-password") 
-    .populate("createdBy", "name email");
+    .select('-password')
+    .populate('createdBy', 'name email');
 
   if (!admin) {
-    throw new Error("Admin not found");
+    throw new Error('Admin not found');
   }
 
   return admin;
 };
-
 
 export const updateAdminPermissionsService = async (id, updates) => {
   const updatePayload = {};
@@ -112,14 +112,7 @@ export const updateAdminPermissionsService = async (id, updates) => {
 
   const admin = await Team.findByIdAndUpdate(id, updatePayload, { new: true });
   if (!admin) {
-    throw new Error("Admin not found");
+    throw new Error('Admin not found');
   }
   return admin;
 };
-
-
-
-
-
-
-

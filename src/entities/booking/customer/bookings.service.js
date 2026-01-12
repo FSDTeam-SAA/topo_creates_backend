@@ -1,16 +1,19 @@
-
-import mongoose from "mongoose";
-import { Booking } from "../booking.model.js";
-import Listing from "../../lender/Listings/listings.model.js";
-import { createPaginationInfo } from "../../../lib/pagination.js";
-import payOutModel from "../../lender/payOut/payOut.model.js";
-import paymentModel from "../../Payment/Booking/payment.model.js";
-import MasterDress from "../../admin/Lisitngs/ReviewandMain Site Listing/masterDressModel.js";
-import { ChatRoom } from "../../message/chatRoom.model.js";
-import promoCodeModel from "../../admin/promoCode/promoCode.model.js";
-import promoCodeUsageModel from "../promoCodeUsage.model.js";
-import { sendEmail } from "../../../lib/resendEmial.js";
-
+import mongoose from 'mongoose';
+import { Booking } from '../booking.model.js';
+import Listing from '../../lender/Listings/listings.model.js';
+import { createPaginationInfo } from '../../../lib/pagination.js';
+import payOutModel from '../../lender/payOut/payOut.model.js';
+import paymentModel from '../../Payment/Booking/payment.model.js';
+import MasterDress from '../../admin/Lisitngs/ReviewandMain Site Listing/masterDressModel.js';
+import { ChatRoom } from '../../message/chatRoom.model.js';
+import promoCodeModel from '../../admin/promoCode/promoCode.model.js';
+import promoCodeUsageModel from '../promoCodeUsage.model.js';
+import { sendEmail } from '../../../lib/resendEmial.js';
+import {
+  bookingCreatedTemplate,
+  bookingCancelledTemplate
+} from '../../../lib/emailTemplates/booking.templates.js';
+import User from '../../auth/auth.model.js';
 
 export const createBookingService = async ({ userId, role, body }) => {
   const session = await mongoose.startSession();
@@ -31,7 +34,7 @@ export const createBookingService = async ({ userId, role, body }) => {
       tryOnAllowedByLender,
       tryOnOutcome,
       tryOnNotes,
-      selectedLender ,
+      selectedLender,
       promoCode
     } = body;
 
@@ -43,11 +46,11 @@ export const createBookingService = async ({ userId, role, body }) => {
       throw new Error('User KYC not verified or user not found.');
     }
 
-   
-
     // --- Fetch Master Dress ---
-    if (!mongoose.Types.ObjectId.isValid(masterdressId)) throw new Error('Invalid MasterDress ID');
-    const masterDress = await MasterDress.findById(masterdressId).session(session);
+    if (!mongoose.Types.ObjectId.isValid(masterdressId))
+      throw new Error('Invalid MasterDress ID');
+    const masterDress =
+      await MasterDress.findById(masterdressId).session(session);
     if (!masterDress) throw new Error('Master dress not found');
 
     // --- Base fees ---
@@ -55,119 +58,136 @@ export const createBookingService = async ({ userId, role, body }) => {
     const shippingFee = 10;
 
     // --- Allocate lender ---
-   
 
-let allocatedLender = null;
+    let allocatedLender = null;
 
-if (deliveryMethod === 'Pickup' && selectedLender) {
-const lender = selectedLender[0];
+    if (deliveryMethod === 'Pickup' && selectedLender) {
+      const lender = selectedLender[0];
 
-  // --- Check if the lender is allowed for this dress ---
-  if (!masterDress.lenderIds.some(id => id.toString() === lender._id.toString())) {
-    throw new Error('Selected lender is not listed for this Master Dress.');
-  }
+      // --- Check if the lender is allowed for this dress ---
+      if (
+        !masterDress.lenderIds.some(
+          (id) => id.toString() === lender._id.toString()
+        )
+      ) {
+        throw new Error('Selected lender is not listed for this Master Dress.');
+      }
 
-  // --- Find the listing for this lender among the MasterDress listings ---
-  const lenderListing = await Listing.findOne({
-    _id: { $in: masterDress.listingIds },
-    lenderId: new mongoose.Types.ObjectId(lender._id),
-    isActive: true,
-    approvalStatus: 'approved'
-  }).session(session);
+      // --- Find the listing for this lender among the MasterDress listings ---
+      const lenderListing = await Listing.findOne({
+        _id: { $in: masterDress.listingIds },
+        lenderId: new mongoose.Types.ObjectId(lender._id),
+        isActive: true,
+        approvalStatus: 'approved'
+      }).session(session);
 
-  if (!lenderListing) throw new Error('Selected lender does not have an active approved listing for this dress.');
+      if (!lenderListing)
+        throw new Error(
+          'Selected lender does not have an active approved listing for this dress.'
+        );
 
-  // --- Allocate lender ---
-  allocatedLender = {
-    lenderId: lender._id,
-    email: lender.email,
-    distance: lender.distance,
-    location: lender.location, 
-    allocationType: 'LocalPickup',
-    price: rentalDurationDays <= 4
-      ? lenderListing.rentalPrice.fourDays
-      : lenderListing.rentalPrice.eightDays,
-    allocatedAt: new Date()
-  };
-}  else if (deliveryMethod === 'Shipping') {
-  const listings = await Listing.find({
-    _id: { $in: masterDress.listingIds },
-    isActive: true,
-    approvalStatus: 'approved'
-  }).session(session);
+      // --- Allocate lender ---
+      allocatedLender = {
+        lenderId: lender._id,
+        email: lender.email,
+        distance: lender.distance,
+        location: lender.location,
+        allocationType: 'LocalPickup',
+        price:
+          rentalDurationDays <= 4
+            ? lenderListing.rentalPrice.fourDays
+            : lenderListing.rentalPrice.eightDays,
+        allocatedAt: new Date()
+      };
+    } else if (deliveryMethod === 'Shipping') {
+      const listings = await Listing.find({
+        _id: { $in: masterDress.listingIds },
+        isActive: true,
+        approvalStatus: 'approved'
+      }).session(session);
 
-  if (!listings.length) throw new Error('No active/approved listings found for shipping.');
+      if (!listings.length)
+        throw new Error('No active/approved listings found for shipping.');
 
-  let lowestPriceListing = rentalDurationDays <= 4
-    ? listings.reduce((prev, curr) => curr.rentalPrice.fourDays < prev.rentalPrice.fourDays ? curr : prev)
-    : listings.reduce((prev, curr) => curr.rentalPrice.eightDays < prev.rentalPrice.eightDays ? curr : prev);
+      let lowestPriceListing =
+        rentalDurationDays <= 4
+          ? listings.reduce((prev, curr) =>
+              curr.rentalPrice.fourDays < prev.rentalPrice.fourDays
+                ? curr
+                : prev
+            )
+          : listings.reduce((prev, curr) =>
+              curr.rentalPrice.eightDays < prev.rentalPrice.eightDays
+                ? curr
+                : prev
+            );
 
-  allocatedLender = {
-    lenderId: lowestPriceListing.lenderId,
-    email: lowestPriceListing.lenderEmail || '',
-    price: rentalDurationDays <= 4
-      ? lowestPriceListing.rentalPrice.fourDays
-      : lowestPriceListing.rentalPrice.eightDays,
-    allocationType: 'Shipping',
-    
-    // <-- NO location field at all
-  };
-}
+      allocatedLender = {
+        lenderId: lowestPriceListing.lenderId,
+        email: lowestPriceListing.lenderEmail || '',
+        price:
+          rentalDurationDays <= 4
+            ? lowestPriceListing.rentalPrice.fourDays
+            : lowestPriceListing.rentalPrice.eightDays,
+        allocationType: 'Shipping'
 
-
-
+        // <-- NO location field at all
+      };
+    }
 
     if (!allocatedLender) throw new Error('Failed to allocate lender.');
 
     // --- Calculate rentalFee & totalAmount ---
-    const rentalFee = allocatedLender.allocationType === 'Shipping'
-      ?  masterDress.basePrice
-      : masterDress.basePrice + (rentalDurationDays >= 8 ? 15 : 0);
+    const rentalFee =
+      allocatedLender.allocationType === 'Shipping'
+        ? masterDress.basePrice
+        : masterDress.basePrice + (rentalDurationDays >= 8 ? 15 : 0);
 
     let totalAmount = rentalFee + insuranceFee + shippingFee;
 
+    // ---------------------------
+    // PROMO CODE VALIDATION + DISCOUNT (ADD HERE)
+    // ---------------------------
+    let discountAmount = 0;
+    let appliedPromo = null;
 
-// ---------------------------
-// PROMO CODE VALIDATION + DISCOUNT (ADD HERE)
-// ---------------------------
-let discountAmount = 0;
-let appliedPromo = null;
+    if (body.promoCode) {
+      appliedPromo = await promoCodeModel
+        .findOne({
+          code: body.promoCode,
+          isActive: true,
+          expiresAt: { $gte: new Date() }
+        })
+        .session(session);
 
-if (body.promoCode) {
-  
+      if (!appliedPromo) {
+        throw new Error('Invalid or expired promo code.');
+      }
 
-  appliedPromo = await promoCodeModel.findOne({
-    code: body.promoCode,
-    isActive: true,
-    expiresAt: { $gte: new Date() }
-  }).session(session);
+      // OPTIONAL: prevent multiple user usage
 
-  if (!appliedPromo) {
-    throw new Error("Invalid or expired promo code.");
-  }
+      const alreadyUsed = await promoCodeUsageModel
+        .countDocuments({
+          promoCodeId: appliedPromo._id,
+          userId: user._id
+        })
+        .session(session);
 
-  // OPTIONAL: prevent multiple user usage
-  
-  const alreadyUsed = await promoCodeUsageModel.countDocuments({
-    promoCodeId: appliedPromo._id,
-    userId: user._id
-  }).session(session);
+      if (appliedPromo.maxUsage && alreadyUsed >= appliedPromo.maxUsage) {
+        throw new Error('Promo code usage limit reached.');
+      }
 
-  if (appliedPromo.maxUsage && alreadyUsed >= appliedPromo.maxUsage) {
-    throw new Error("Promo code usage limit reached.");
-  }
+      // Calculate discount
+      if (appliedPromo.discountType === 'PERCENTAGE') {
+        discountAmount = (totalAmount * appliedPromo.discount) / 100;
+      } else if (appliedPromo.discountType === 'FLAT') {
+        discountAmount = appliedPromo.discount;
+      }
 
-  // Calculate discount
-  if (appliedPromo.discountType === "PERCENTAGE") {
-    discountAmount = (totalAmount * appliedPromo.discount) / 100;
-  } else if (appliedPromo.discountType === "FLAT") {
-    discountAmount = appliedPromo.discount;
-  }
+      discountAmount = Math.min(discountAmount, totalAmount);
 
-  discountAmount = Math.min(discountAmount, totalAmount);
-
-  totalAmount -= discountAmount;
-}
+      totalAmount -= discountAmount;
+    }
 
     // --- Prepare booking data ---
     const bookingData = {
@@ -202,54 +222,72 @@ if (body.promoCode) {
     const booking = new Booking(bookingData);
     await booking.save({ session });
 
-
     // Populate customer info
-    await booking.populate([{ path: 'customer', select: '-password -refreshToken' }]);
+    await booking.populate([
+      { path: 'customer', select: '-password -refreshToken' }
+    ]);
 
-if (appliedPromo) {
-  const PromoUsage = mongoose.model("PromoCodeUsage");
+    if (appliedPromo) {
+      const PromoUsage = mongoose.model('PromoCodeUsage');
 
-  await PromoUsage.create(
-    [{
-      promoCodeId: appliedPromo._id,
-      userId: user._id,
-      bookingId: booking._id,
-      discountApplied: discountAmount
-    }],
-    { session }
-  );
+      await PromoUsage.create(
+        [
+          {
+            promoCodeId: appliedPromo._id,
+            userId: user._id,
+            bookingId: booking._id,
+            discountApplied: discountAmount
+          }
+        ],
+        { session }
+      );
 
-  // increase usedCount
-  appliedPromo.usedCount += 1;
-  await appliedPromo.save({ session });
-}
+      // increase usedCount
+      appliedPromo.usedCount += 1;
+      await appliedPromo.save({ session });
+    }
 
     await session.commitTransaction();
     session.endSession();
 
-    // Send email after successful commit
-try {
-  const emailHtml = `
-    <h2>Booking Confirmation</h2>
-    <p>Hi ${user.fistName || 'Customer'},</p>
-    <p>Your booking for <strong>${masterDress.dressName}</strong> has been confirmed.</p>
-    <p>Rental Duration: ${rentalDurationDays} days</p>
-    <p>Delivery Method: ${deliveryMethod}</p>
-    <p>Total Amount: $${totalAmount.toFixed(2)}</p>
-    <p>Thank you for using MuseGala!</p>
-  `;
+    // Send booking created email after successful commit
+    try {
+      const customer = await User.findById(userId);
+      const lender = await User.findById(allocatedLender.lenderId);
 
-  await sendEmail({
-    to: user.email,
-    subject: 'Your Booking Confirmation - MuseGala',
-    html: emailHtml
-  });
-} catch (emailError) {
-  console.error('Failed to send booking email:', emailError);
-}
+      if (customer?.email) {
+        await sendEmail({
+          to: customer.email,
+          subject: 'Booking Confirmation - Pending Lender Approval',
+          html: bookingCreatedTemplate(
+            customer.firstName || customer.name || 'Customer',
+            masterDress.dressName,
+            rentalDurationDays.toString(),
+            deliveryMethod,
+            totalAmount.toFixed(2)
+          )
+        });
+      }
+
+      // Also notify lender
+      if (lender?.email) {
+        await sendEmail({
+          to: lender.email,
+          subject: 'New Booking Request for Your Dress',
+          html: bookingCreatedTemplate(
+            lender.firstName || lender.name || 'Lender',
+            masterDress.dressName,
+            rentalDurationDays.toString(),
+            deliveryMethod,
+            totalAmount.toFixed(2)
+          )
+        });
+      }
+    } catch (emailError) {
+      console.error('Error sending booking created emails:', emailError);
+    }
 
     return booking;
-
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -257,9 +295,13 @@ try {
   }
 };
 
-
-
-export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, role, userId }) => {
+export const getAllBookingsService = async ({
+  page = 1,
+  limit = 10,
+  query = {},
+  role,
+  userId
+}) => {
   // 1. Build filter object
   const filterQuery = {};
 
@@ -270,8 +312,8 @@ export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, 
   if (query.lender) filterQuery.lender = query.lender;
 
   // Role filtering
-  if (role === "USER") filterQuery.customer = userId;
-  else if (role === "LENDER") filterQuery.lender = userId;
+  if (role === 'USER') filterQuery.customer = userId;
+  else if (role === 'LENDER') filterQuery.lender = userId;
 
   // 2. Count
   const totalBookings = await Booking.countDocuments(filterQuery);
@@ -279,9 +321,9 @@ export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, 
   // 3. Fetch bookings
   const bookings = await Booking.find(filterQuery)
     .populate([
-      { path: "customer", select: "-password -refreshToken" },
-      { path: "lender", select: "-password -refreshToken" },
-      { path: "listing" },
+      { path: 'customer', select: '-password -refreshToken' },
+      { path: 'lender', select: '-password -refreshToken' },
+      { path: 'listing' }
     ])
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
@@ -291,18 +333,19 @@ export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, 
   // ------ ADD CHATROOM DATA HERE -------
   const bookingIds = bookings.map((b) => b._id);
 
-  const chatRooms = await ChatRoom.find({ bookingId: { $in: bookingIds } })
-    .lean();
+  const chatRooms = await ChatRoom.find({
+    bookingId: { $in: bookingIds }
+  }).lean();
 
   const chatRoomMap = {};
-  chatRooms.forEach(cr => {
+  chatRooms.forEach((cr) => {
     chatRoomMap[cr.bookingId.toString()] = cr;
   });
 
   // merge chatRoom into each booking
-  const bookingsWithChat = bookings.map(b => ({
+  const bookingsWithChat = bookings.map((b) => ({
     ...b,
-    chatRoom: chatRoomMap[b._id.toString()] || null,
+    chatRoom: chatRoomMap[b._id.toString()] || null
   }));
   // --------------------------------------
 
@@ -311,8 +354,6 @@ export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, 
 
   return { bookings: bookingsWithChat, paginationInfo };
 };
-
-
 
 // GET ALL BOOKINGS
 // export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, role, userId }) => {
@@ -350,41 +391,46 @@ export const getAllBookingsService = async ({ page = 1, limit = 10, query = {}, 
 //   return { bookings, paginationInfo };
 // };
 
-
 // Get booking by ID with role check
 export const getBookingByIdService = async ({ bookingId, userId, role }) => {
-  if (!mongoose.Types.ObjectId.isValid(bookingId)) throw new Error("Invalid booking ID");
+  if (!mongoose.Types.ObjectId.isValid(bookingId))
+    throw new Error('Invalid booking ID');
 
-  const booking = await Booking.findById(bookingId)
-    .populate([
-      { path: "customer", select: "-password -refreshToken" },
-      { path: "lender", select: "-password -refreshToken" },
-      { path: "listing" },
-    ]);
+  const booking = await Booking.findById(bookingId).populate([
+    { path: 'customer', select: '-password -refreshToken' },
+    { path: 'lender', select: '-password -refreshToken' },
+    { path: 'listing' }
+  ]);
 
-  if (!booking) throw new Error("Booking not found");
+  if (!booking) throw new Error('Booking not found');
   return booking;
 };
 
 // GET BOOKINGS FOR LOGGED-IN USER
 export const getUserBookingsService = async (userId) => {
-  if (!mongoose.Types.ObjectId.isValid(userId)) throw new Error("Invalid user ID");
+  if (!mongoose.Types.ObjectId.isValid(userId))
+    throw new Error('Invalid user ID');
 
   const bookings = await Booking.find({ customer: userId })
-    .populate("lender", "-password -refreshToken")
-    .populate("listing")
+    .populate('lender', '-password -refreshToken')
+    .populate('listing')
     .sort({ createdAt: -1 });
 
   return bookings;
 };
 
-
 // UPDATE BOOKING SERVICE
-export const updateBookingService = async ({ bookingId, userId, role, updateData }) => {
-  if (!mongoose.Types.ObjectId.isValid(bookingId)) throw new Error("Invalid booking ID");
+export const updateBookingService = async ({
+  bookingId,
+  userId,
+  role,
+  updateData
+}) => {
+  if (!mongoose.Types.ObjectId.isValid(bookingId))
+    throw new Error('Invalid booking ID');
 
   const booking = await Booking.findById(bookingId);
-  if (!booking) throw new Error("Booking not found");
+  if (!booking) throw new Error('Booking not found');
 
   // // Only allow the user/lender/admin who owns this booking or admin to update
   // if (role === "USER" && booking.customer.toString() !== userId) {
@@ -401,31 +447,82 @@ export const updateBookingService = async ({ bookingId, userId, role, updateData
   await booking.save();
 
   const populatedBooking = await Booking.findById(booking._id)
-    .populate("customer", "-password -refreshToken")
-    .populate("lender", "-password -refreshToken")
-    .populate("listing");
+    .populate('customer', '-password -refreshToken')
+    .populate('lender', '-password -refreshToken')
+    .populate('listing');
 
   return populatedBooking;
 };
 
-
 // DELETE BOOKING
 export const deleteBookingService = async (bookingId) => {
-  if (!mongoose.Types.ObjectId.isValid(bookingId)) throw new Error("Invalid booking ID");
+  if (!mongoose.Types.ObjectId.isValid(bookingId))
+    throw new Error('Invalid booking ID');
 
-  const booking = await Booking.findByIdAndDelete(bookingId);
-  if (!booking) throw new Error("Booking not found");
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new Error('Booking not found');
+
+  const masterDress = await MasterDress.findById(booking.masterdressId);
+
+  // Calculate refund amount
+  let refundAmount = booking.totalAmount;
+  if (booking.paymentStatus === 'Paid') {
+    // Full refund if not yet delivered
+    if (
+      !['Completed', 'ReceivedByLender', 'Dress Returned'].includes(
+        booking.deliveryStatus
+      )
+    ) {
+      refundAmount = booking.totalAmount;
+    }
+  }
+
+  // Delete booking
+  const deletedBooking = await Booking.findByIdAndDelete(bookingId);
+
+  // Send cancellation email
+  try {
+    const customer = await User.findById(booking.customer);
+    const lender = await User.findById(booking.allocatedLender?.lenderId);
+
+    if (customer?.email) {
+      await sendEmail({
+        to: customer.email,
+        subject: 'Booking Cancelled',
+        html: bookingCancelledTemplate(
+          customer.firstName || customer.name || 'Customer',
+          masterDress?.dressName || 'Your Dress',
+          'Cancelled by customer',
+          refundAmount.toFixed(2)
+        )
+      });
+    }
+
+    if (lender?.email) {
+      await sendEmail({
+        to: lender.email,
+        subject: 'Booking Cancelled by Customer',
+        html: bookingCancelledTemplate(
+          lender.firstName || lender.name || 'Lender',
+          masterDress?.dressName || 'Your Dress',
+          'Cancelled by customer',
+          '0.00'
+        )
+      });
+    }
+  } catch (emailError) {
+    console.error('Error sending cancellation emails:', emailError);
+  }
 
   // Optional: mark listing as available again
   const listing = await Listing.findById(booking.listing);
   if (listing) {
-    listing.status = "available";
+    listing.status = 'available';
     await listing.save();
   }
 
   return booking;
 };
-
 
 /**
  * Fetch payout request by bookingId
@@ -434,37 +531,44 @@ export const deleteBookingService = async (bookingId) => {
  */
 export const getPayoutByBookingIdService = async (bookingId) => {
   if (!bookingId) {
-    throw new Error("Booking ID is required");
+    throw new Error('Booking ID is required');
   }
 
   const payout = await payOutModel.findOne({ bookingId });
-    const payment = await paymentModel.findOne({ bookingId });
+  const payment = await paymentModel.findOne({ bookingId });
   if (!payment) {
-    throw new Error("No payment found for this booking");
+    throw new Error('No payment found for this booking');
   }
 
   if (!payout) {
-    throw new Error("No payout request found for this booking");
+    throw new Error('No payout request found for this booking');
   }
 
-  return {payout,payment};
+  return { payout, payment };
 };
-
-
 
 export const getLenderBookingStatsService = async () => {
   // Example: Fetch all bookings and payouts regardless of lender
-  const allBookings = await paymentModel.find({ type: "booking" });
+  const allBookings = await paymentModel.find({ type: 'booking' });
   // console.log("ll",allBookings);
   const totalBookingsCount = allBookings.length;
-  const totalBookingsAmount = allBookings.reduce((sum, b) => sum + (b.amount || 0), 0);
+  const totalBookingsAmount = allBookings.reduce(
+    (sum, b) => sum + (b.amount || 0),
+    0
+  );
 
-  const paidBookings = allBookings.filter((b) => b.status === "Paid");
+  const paidBookings = allBookings.filter((b) => b.status === 'Paid');
   const paidBookingCount = paidBookings.length;
-  const paidBookingsAmount = paidBookings.reduce((sum, b) => sum + (b.amount || 0), 0);
+  const paidBookingsAmount = paidBookings.reduce(
+    (sum, b) => sum + (b.amount || 0),
+    0
+  );
 
-  const paidPayouts = await payOutModel.find({ status: "paid" });
-  const totalProfit = paidPayouts.reduce((sum, p) => sum + (p.bookingAmount - p.requestedAmount), 0);
+  const paidPayouts = await payOutModel.find({ status: 'paid' });
+  const totalProfit = paidPayouts.reduce(
+    (sum, p) => sum + (p.bookingAmount - p.requestedAmount),
+    0
+  );
 
   return {
     totalBookingsCount,
@@ -475,18 +579,13 @@ export const getLenderBookingStatsService = async () => {
   };
 };
 
-
 // fetch dress with dress name
 
 export const getMasterDressByNameService = async (dressName) => {
   // Case-insensitive search
   const dresses = await MasterDress.find({
-    dressName: { $regex: `^${dressName}$`, $options: 'i' }, // exact match ignoring case
-   
+    dressName: { $regex: `^${dressName}$`, $options: 'i' } // exact match ignoring case
   }).lean();
 
   return dresses;
 };
-
-
-

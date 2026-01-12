@@ -1,6 +1,8 @@
 import { Booking } from "../../booking/booking.model.js";
 import { Dispute } from "../dispute.model.js";
-
+import { sendEmail } from "../../../lib/resendEmial.js";
+import { disputeCreatedTemplate } from "../../../lib/emailTemplates/dispute.templates.js";
+import User from "../../auth/auth.model.js";
 
 export const createDispute = async (customerId, bookingId, disputeData) => {
   const booking = await Booking.findOne({ _id: bookingId, customer: customerId });
@@ -31,6 +33,39 @@ export const createDispute = async (customerId, bookingId, disputeData) => {
 
   booking.dispute = savedDispute._id;
   await booking.save();
+
+  // Send email to customer
+  try {
+    const customer = await User.findById(customerId);
+    const lender = await User.findById(booking.lender);
+    
+    if (customer?.email) {
+      await sendEmail({
+        to: customer.email,
+        subject: 'Dispute Created - We\'re Here to Help',
+        html: disputeCreatedTemplate(
+          customer.firstName || customer.name || 'User',
+          disputeData.issueType,
+          bookingId.toString()
+        ),
+      });
+    }
+    
+    // Also notify lender
+    if (lender?.email) {
+      await sendEmail({
+        to: lender.email,
+        subject: 'Dispute Filed Against Your Booking',
+        html: disputeCreatedTemplate(
+          lender.firstName || lender.name || 'User',
+          disputeData.issueType,
+          bookingId.toString()
+        ),
+      });
+    }
+  } catch (emailError) {
+    console.error('Error sending dispute created emails:', emailError);
+  }
 
   return savedDispute;
 };

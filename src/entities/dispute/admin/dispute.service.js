@@ -1,5 +1,12 @@
 import mongoose from "mongoose";
 import { Dispute } from "../dispute.model.js";
+import User from "../../auth/auth.model.js";
+import { sendEmail } from "../../../lib/resendEmial.js";
+import {
+  disputeUnderReviewTemplate,
+  disputeResponseTemplate,
+  disputeResolvedTemplate,
+} from "../../../lib/emailTemplates/dispute.templates.js";
 
 
 export const getAllDisputesService = async (page = 1, limit = 10, status, monthFilter) => {
@@ -173,7 +180,7 @@ export const getDisputeByIdService = async (disputeId) => {
 
 
 export const respondToDispute = async (adminId, disputeId, message, status) => {
-  const dispute = await Dispute.findById(disputeId);
+  const dispute = await Dispute.findById(disputeId).populate('booking', 'customer lender');
   if (!dispute) throw new Error("Dispute not found");
 
   // Create timeline entry
@@ -196,12 +203,52 @@ export const respondToDispute = async (adminId, disputeId, message, status) => {
   dispute.updatedBy = adminId;
 
   await dispute.save();
+
+  // Send email notification to parties
+  try {
+    const admin = await User.findById(adminId);
+    const customer = await User.findById(dispute.booking.customer);
+    const lender = await User.findById(dispute.booking.lender);
+
+    const adminName = admin ? (admin.firstName || admin.name || 'Support Team') : 'Support Team';
+    
+    // Notify customer
+    if (customer?.email) {
+      await sendEmail({
+        to: customer.email,
+        subject: 'New Response on Your Dispute',
+        html: disputeResponseTemplate(
+          customer.firstName || customer.name || 'User',
+          adminName,
+          message,
+          dispute.booking._id.toString()
+        ),
+      });
+    }
+    
+    // Notify lender
+    if (lender?.email) {
+      await sendEmail({
+        to: lender.email,
+        subject: 'New Response on Dispute',
+        html: disputeResponseTemplate(
+          lender.firstName || lender.name || 'User',
+          adminName,
+          message,
+          dispute.booking._id.toString()
+        ),
+      });
+    }
+  } catch (emailError) {
+    console.error('Error sending dispute response emails:', emailError);
+  }
+
   return dispute;
 };
 
 
 export const resolveDispute = async (adminId, disputeId, message) => {
-  const dispute = await Dispute.findById(disputeId);
+  const dispute = await Dispute.findById(disputeId).populate('booking', 'customer lender');
   if (!dispute) throw new Error("Dispute not found");
 
   // Add resolution timeline entry
@@ -221,6 +268,45 @@ export const resolveDispute = async (adminId, disputeId, message) => {
 
   dispute.markModified("status");
   await dispute.save();
+
+  // Send resolution email
+  try {
+    const customer = await User.findById(dispute.booking.customer);
+    const lender = await User.findById(dispute.booking.lender);
+
+    const resolution = message || "Dispute has been resolved by our team";
+    const refundAmount = dispute.refundAmount ? dispute.refundAmount.toFixed(2) : null;
+
+    // Notify customer
+    if (customer?.email) {
+      await sendEmail({
+        to: customer.email,
+        subject: 'Your Dispute Has Been Resolved',
+        html: disputeResolvedTemplate(
+          customer.firstName || customer.name || 'User',
+          resolution,
+          refundAmount,
+          dispute.booking._id.toString()
+        ),
+      });
+    }
+
+    // Notify lender
+    if (lender?.email) {
+      await sendEmail({
+        to: lender.email,
+        subject: 'Dispute Resolution Completed',
+        html: disputeResolvedTemplate(
+          lender.firstName || lender.name || 'User',
+          resolution,
+          refundAmount,
+          dispute.booking._id.toString()
+        ),
+      });
+    }
+  } catch (emailError) {
+    console.error('Error sending dispute resolved emails:', emailError);
+  }
 
   // Refetch to ensure fresh state
   const updatedDispute = await Dispute.findById(disputeId);
