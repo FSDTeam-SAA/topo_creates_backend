@@ -430,6 +430,18 @@ export const getAllMasterDresses = async (query) => {
   }
 
 
+   // 🏠 Local pickup filter (independent)
+  if (query.localPickup !== undefined) {
+    filter['shippingDetails.isLocalPickup'] =
+      query.localPickup === 'true';
+  }
+
+  // 🚚 Shipping filter (independent)
+  if (query.shipping !== undefined) {
+    filter['shippingDetails.isShippingAvailable'] =
+      query.shipping === 'true';
+  }
+
   const [data, totalItems] = await Promise.all([
     MasterDress.find(filter).skip(skip).limit(limit).lean(),
     MasterDress.countDocuments(filter)
