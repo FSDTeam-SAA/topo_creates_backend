@@ -33,7 +33,7 @@ app.post('/api/v1/webhook/connected', express.raw({ type: '*/*' }), connectedAcc
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: '*',
+  origin: ["https://musegala.com.au", "https://www.musegala.com.au","https://api.musegala.com.au"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', "PATCH",'OPTIONS'],
 }));
