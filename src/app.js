@@ -33,7 +33,7 @@ app.post('/api/v1/webhook/connected', express.raw({ type: '*/*' }), connectedAcc
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: ["https://musegala.com.au", "https://www.musegala.com.au","https://api.musegala.com.au","http://localost:3000"],
+  origin:true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', "PATCH",'OPTIONS'],
 }));
@@ -105,7 +105,7 @@ const server = createServer(app);
 
 export const io = new Server(server, {
   cors: {
-    origin: ["https://musegala.com.au", "https://www.musegala.com.au,","https://api.musegala.com.au","http://localost:3000",
+    origin:true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', "PATCH",'OPTIONS'],
     credentials: true,
   },
