@@ -23,7 +23,7 @@ export const createNewsletterSubscriptionService = async (email) => {
                     <p>A new user has subscribed to the newsletter.</p>
                     <p><strong>Email:</strong> ${email}</p>
                     <br/>
-                    <p>Regards,<br/>Topo Creates Team</p>
+                   
                 `
       })
     );
@@ -166,20 +166,11 @@ export const createNewsletterSubscriptionService = async (email) => {
             <div class="divider"></div>
 
             <div class="footer">
-              <div class="footer-brand">MUSE GALA</div>
+              <div class="footer-brand">THE MUSE GALA</div>
               
-              <div class="footer-links">
-                <a href="#">TERMS</a>
-                <span>|</span>
-                <a href="#">PRIVACY</a>
-                <span>|</span>
-                <a href="#">UNSUBSCRIBE</a>
-              </div>
+              
 
-              <div class="social-icons">
-                <a href="#" title="Instagram">📷</a>
-                <a href="#" title="Email">✉</a>
-              </div>
+              
             </div>
           </div>
         </body>
