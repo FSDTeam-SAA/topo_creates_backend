@@ -120,7 +120,7 @@ export const subscriberWelcomeEmail = () => `
         </svg>
       </div>
 
-      <h1>Thank You!</h1>
+      <h1>THANK YOU!</h1>
       
       <div class="subtitle">
         You're now subscribed to the Muse Gala newsletter.
