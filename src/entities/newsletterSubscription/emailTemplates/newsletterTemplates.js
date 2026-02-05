@@ -90,12 +90,13 @@ export const subscriberWelcomeEmail = () => `
         font-size: 13px;
         color: #666;
         margin-bottom: 20px;
+        white-space: nowrap;
       }
       .footer-links a {
         color: #000;
         text-decoration: none;
         margin: 0 12px;
-        font-weight: 600;
+        font-weight: 400;
         font-family: 'Avenir';
       }
       .social-icons {
