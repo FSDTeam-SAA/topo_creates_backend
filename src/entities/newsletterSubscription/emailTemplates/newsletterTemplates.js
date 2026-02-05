@@ -136,7 +136,7 @@ export const subscriberWelcomeEmail = () => `
         <div class="footer-brand">MUSE GALA</div>
         
         <div class="footer-links">
-          <a href="https://musegala.com.au/terms-and-conditions">TERMS</a> | <a href="https://musegala.com.au/privacy-policy">PRIVACY</a> | <a href="#">UNSUBSCRIBE</a>
+          <a href="https://musegala.com.au/terms-and-conditions">TERMS</a> | <a href="https://musegala.com.au/privacy-policy">PRIVACY</a> | <a href="https://musegala.com.au/unsubscribe">UNSUBSCRIBE</a>
         </div>
 
         <div class="social-icons">
